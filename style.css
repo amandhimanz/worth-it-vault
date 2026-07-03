@@ -154,8 +154,14 @@ a { color: inherit; text-decoration: none; }
   height: 100dvh;
   overflow-y: scroll;
   overflow-x: hidden;
-  scroll-behavior: auto;            /* JS uses scrollTo({behavior:'smooth'}) */
-  scroll-snap-type: none !important;
+  scroll-behavior: smooth;          /* native smooth scroll for keyboard/anchor jumps */
+  /* Native CSS scroll-snap — the browser compositor owns the physics for
+     every input type (wheel, trackpad, touch, keyboard, scrollbar), so it
+     always comes to rest exactly on a panel boundary. This is what fixes
+     "gets stuck between sections" on mobile: there is no custom JS frame
+     loop that can drop a frame or get interrupted mid-transition. */
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -178,7 +184,12 @@ a { color: inherit; text-decoration: none; }
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: scroll;
-  scroll-snap-align: none !important;
+  /* Each panel is a snap point. scroll-snap-stop:always means even a fast
+     fling can't skip past a panel — every section gets a full, deliberate
+     stop, which is what makes "up and down" feel controlled instead of
+     ever landing half-way between two sections. */
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 /* Cinematic vignette */

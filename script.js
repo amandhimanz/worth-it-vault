@@ -100,32 +100,45 @@
   'use strict';
 
   /* ============================================================
-     ❶  CONSTANTS
+     SCROLL ENGINE — v8 (native CSS scroll-snap rewrite)
+     ──────────────────────────────────────────────────────────
+     WHY THIS EXISTS
+     The old engine (v5→v7) hand-rolled its own wheel/touch physics
+     in JS — a rAF momentum loop for wheel, a "pull past the edge"
+     gesture-delta model for touch. Both had to re-derive, by hand,
+     behaviour the browser already gives for free, and both could
+     land in an inconsistent state (mid-transition, half a panel
+     off) if a frame was dropped, a touch got cancelled, or a resize
+     landed mid-animation — exactly the "gets stuck between
+     sections" bug on mobile.
+
+     This version deletes that layer and uses native CSS scroll-snap
+     (see style.css) instead: the browser itself guarantees
+     #scroll-container always comes to rest exactly on a panel
+     boundary, for every input type (wheel, trackpad, touch,
+     keyboard, scrollbar) — the compositor, not a JS frame loop,
+     owns the physics, so it can't get stuck mid-panel. Sections
+     that need inner content scroll (data-smooth="true") get a
+     normal native overflow:auto element nested inside the snap
+     panel: the browser already scrolls the innermost scrollable
+     ancestor first and only lets the gesture bubble up to the outer
+     snap container once that inner element hits its own edge —
+     "smooth inside, snap between sections" with zero custom code.
+
+     JS's job now is just the surrounding UX: keep dots/keyboard/
+     nav in sync with whichever panel is current, and drive
+     programmatic jumps (dot clicks, nav links, back-to-top) via
+     scrollIntoView. Everything downstream in this file (nav reveal,
+     mobile pill, reviews carousel, counters, footer reveal, etc.)
+     talks to this engine only through S.current / S.moving /
+     goTo() / moveTo() / updateDots() / window.voidGoToSection —
+     all of which still exist with the same signatures, so none of
+     that code needed to change.
   ============================================================ */
+
   var CFG = {
-    MOVE_COOLDOWN       : 550,   // ms — section transition lock duration (was 700 — felt sluggish)
-    EDGE_TOLERANCE      : 6,     // px — how close to edge counts as "at boundary"
-    SWIPE_THRESHOLD     : 45,    // px — minimum swipe for fit-viewport panels (no inner scroll)
-    OVERLAY_DURATION    : 150,   // ms — flash overlay visible time
-
-    // PC inner-scroll easing (wheel-driven, JS-owned rAF loop)
-    WHEEL_STEP_GAIN      : 0.42,  // how much of each wheel delta becomes added velocity (higher = punchier response)
-    WHEEL_FRICTION       : 0.88,  // velocity decay per animation frame (lower = settles faster, less "heavy" drift)
-    WHEEL_MIN_VELOCITY   : 0.05,  // px/frame — below this, the animation loop stops itself
-    WHEEL_MAX_VELOCITY   : 34,    // px/frame cap — keeps one aggressive wheel tick from launching too far
-    WHEEL_ACCUM_FOR_SNAP : 70,    // px of "pushing past the edge" needed before section changes (was 90 — took too long to trigger)
-    WHEEL_BOUNDARY_DECAY : 300,   // ms — reset boundary-push accumulator if wheel goes idle
-
-    // Touch: on touchend we compare how far the finger travelled to how
-    // far the content actually scrolled during that same touch. Once an
-    // edge is hit the content can't absorb any more, so that gap
-    // ("pull") is what confirms intent to leave the section — checked
-    // live on every touch, no settle wait and no requirement that it be
-    // a new, separate touch. A fast flick needs less pull to confirm,
-    // since speed alone already signals intent.
-    TOUCH_PULL_THRESHOLD       : 18,   // px of "un-absorbable" drag needed at the edge to snap (was 24)
-    TOUCH_FLICK_VELOCITY       : 0.45, // px/ms — drags at or above this speed count as a flick (was 0.5)
-    TOUCH_FLICK_PULL_THRESHOLD : 8,    // px of pull needed at the edge when it's a fast flick (was 10)
+    MOVE_LOCK        : 700,  // ms — ignore new nav input while a programmatic scroll is animating
+    OVERLAY_DURATION : 150,  // ms — flash overlay visible time
   };
 
   /* ============================================================
@@ -145,10 +158,9 @@
   var dotNav       = document.getElementById('dot-nav');
   var dotList      = document.getElementById('dot-list');
   var overlay      = document.getElementById('transition-overlay');
-  var smoothToggle = document.getElementById('smooth-toggle');
   var TOTAL        = panels.length;
 
-  console.log('[VELORA] ' + TOTAL + ' panels — ' + (IS_TOUCH ? 'TOUCH' : 'PC') + ' mode');
+  console.log('[VELORA] ' + TOTAL + ' panels — ' + (IS_TOUCH ? 'TOUCH' : 'PC') + ' mode (native snap)');
 
 
   /* ============================================================
@@ -157,21 +169,9 @@
   var S = {
     current      : 0,
     moving       : false,
-    globalSmooth : false,
-    wheel        : { locked: false, lockTimer: null, snapAcc: 0, snapTimer: null },
-    panelState   : [],   // per-panel runtime state, indexed by panel index
+    globalSmooth : false,   // kept for API compatibility with later code; unused by the engine itself
   };
-
-  panels.forEach(function () {
-    S.panelState.push({
-      velocity      : 0,     // current eased-scroll velocity (px/frame), PC only
-      raf           : null,  // active requestAnimationFrame id, PC only
-      boundaryAcc   : 0,     // accumulated "push past edge" amount (px), PC only
-      boundaryTimer : null,
-      // _touchCleanup and _resetTouchRest are assigned later by
-      // initTouchHandlers() (touch only) — left undefined on PC.
-    });
-  });
+  var moveLockTimer = null;
 
 
   /* ============================================================
@@ -204,63 +204,13 @@
 
 
   /* ============================================================
-     ❻  INNER-SCROLL HELPERS
-  ============================================================ */
-  function getContent(idx) {
-    var p = panels[idx];
-    return p ? p.querySelector('.section-content') : null;
-  }
-
-  function resetScroll(idx) {
-    var c = getContent(idx);
-    if (c) c.scrollTop = 0;
-  }
-
-  function scrollRange(idx) {
-    var c = getContent(idx);
-    if (!c) return 0;
-    var r = c.scrollHeight - c.clientHeight;
-    return r > 0 ? r : 0;
-  }
-
-  function isScrollable(idx) {
-    return scrollRange(idx) > CFG.EDGE_TOLERANCE;
-  }
-
-  function isAtTop(idx) {
-    var c = getContent(idx);
-    if (!c) return true;
-    return c.scrollTop <= CFG.EDGE_TOLERANCE;
-  }
-
-  function isAtBottom(idx) {
-    var c = getContent(idx);
-    if (!c) return true;
-    if (!isScrollable(idx)) return true;
-    return c.scrollTop >= (c.scrollHeight - c.clientHeight - CFG.EDGE_TOLERANCE);
-  }
-
-  /** PC: should this panel use the JS-eased inner-scroll system? */
-  function wantsSmooth(idx) {
-    if (IS_TOUCH) return false;
-    var p = panels[idx];
-    if (!p) return false;
-    return (S.globalSmooth || p.dataset.smooth === 'true') && isScrollable(idx);
-  }
-
-  function resetPanelGestureState(idx) {
-    var st = S.panelState[idx];
-    if (!st) return;
-    st.boundaryAcc  = 0;
-    st.velocity     = 0;
-    clearTimeout(st.boundaryTimer);
-    if (st.raf) { cancelAnimationFrame(st.raf); st.raf = null; }
-    if (st._resetTouchRest) st._resetTouchRest();
-  }
-
-
-  /* ============================================================
-     ❼  CORE NAVIGATION
+     ❻  CORE NAVIGATION
+     ──────────────────────────────────────────────────────────
+     goTo/moveTo now just ask the browser to scroll the target
+     panel into view; native CSS scroll-snap (see style.css) takes
+     it from there and guarantees it lands exactly on the panel
+     boundary. S.moving is only used to stop nav double-fires
+     (dot double-click, keyboard repeat) while that animation runs.
   ============================================================ */
   function flashOverlay() {
     if (!overlay) return;
@@ -268,382 +218,58 @@
     setTimeout(function () { overlay.classList.remove('flash'); }, CFG.OVERLAY_DURATION);
   }
 
-  function moveTo(direction) {
-    if (S.moving) return false;
-    var next = S.current + direction;
-    if (next < 0 || next >= TOTAL) return false;
-
-    resetScroll(next);
-    resetPanelGestureState(next);
-
-    S.moving  = true;
-    S.current = next;
-    flashOverlay();
-    updateDots(next);
-    container.scrollTo({ top: panels[next].offsetTop, behavior: 'smooth' });
-
-    setTimeout(function () {
-      if (panels[S.current]) container.scrollTop = panels[S.current].offsetTop;
-      S.moving = false;
-    }, CFG.MOVE_COOLDOWN);
-
-    return true;
-  }
-
   function goTo(index) {
-    if (index === S.current || S.moving) return;
     if (index < 0 || index >= TOTAL) return;
-
-    resetScroll(index);
-    resetPanelGestureState(index);
+    if (index === S.current && !S.moving) return;
+    var panel = panels[index];
+    if (!panel) return;
 
     S.moving  = true;
     S.current = index;
     flashOverlay();
     updateDots(index);
-    container.scrollTo({ top: panels[index].offsetTop, behavior: 'smooth' });
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    setTimeout(function () {
-      if (panels[S.current]) container.scrollTop = panels[S.current].offsetTop;
-      S.moving = false;
-    }, CFG.MOVE_COOLDOWN);
+    clearTimeout(moveLockTimer);
+    moveLockTimer = setTimeout(function () { S.moving = false; }, CFG.MOVE_LOCK);
+  }
+
+  function moveTo(direction) {
+    var next = S.current + direction;
+    if (next < 0 || next >= TOTAL) return false;
+    goTo(next);
+    return true;
   }
 
   window.voidGoToSection = goTo;
 
 
   /* ============================================================
-     ❽  PC — EASED INNER SCROLL  (rAF momentum loop)
+     ❼  CURRENT-SECTION TRACKING  (IntersectionObserver)
      ──────────────────────────────────────────────────────────
-     Each wheel tick on a smooth-mode panel adds to that panel's
-     velocity. A requestAnimationFrame loop runs while velocity
-     is non-trivial, moving scrollTop by `velocity` each frame
-     and decaying velocity by WHEEL_FRICTION — this is what
-     actually produces the eased/momentum feel. The browser's
-     own scrolling is never used for this (we always
-     preventDefault on smooth-mode wheel events).
+     As the user scrolls natively (wheel, touch, trackpad,
+     scrollbar) — not via goTo() — S.current still needs to stay
+     accurate so dots/keyboard/nav know where we are. An
+     IntersectionObserver watching each panel is the reliable way
+     to do that: it fires only when a panel actually becomes the
+     dominant one in view, immune to the mid-scroll rounding issues
+     that plagued the old scrollTop-comparison approach.
   ============================================================ */
-  function addWheelVelocity(idx, deltaY) {
-    var st = S.panelState[idx];
-    if (!st) return;
-    st.velocity += deltaY * CFG.WHEEL_STEP_GAIN;
-    var cap = CFG.WHEEL_MAX_VELOCITY;
-    if (st.velocity > cap) st.velocity = cap;
-    if (st.velocity < -cap) st.velocity = -cap;
-    if (!st.raf) _runEaseLoop(idx);
+  function initSectionObserver() {
+    if (!('IntersectionObserver' in window) || !container) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.55) return;
+        var idx = panels.indexOf(entry.target);
+        if (idx === -1 || idx === S.current) return;
+        S.current = idx;
+        updateDots(idx);
+      });
+    }, { root: container, threshold: [0.55] });
+    panels.forEach(function (p) { io.observe(p); });
   }
-
-  function _runEaseLoop(idx) {
-    var st = S.panelState[idx];
-    var c  = getContent(idx);
-    if (!st || !c) return;
-
-    function step() {
-      st.raf = null;
-      if (idx !== S.current) { st.velocity = 0; return; } // panel changed mid-flight
-
-      var range = scrollRange(idx);
-      var next  = c.scrollTop + st.velocity;
-      next = Math.max(0, Math.min(range, next));
-      c.scrollTop = next;
-
-      st.velocity *= CFG.WHEEL_FRICTION;
-
-      if (Math.abs(st.velocity) > CFG.WHEEL_MIN_VELOCITY) {
-        st.raf = requestAnimationFrame(step);
-      } else {
-        st.velocity = 0;
-      }
-    }
-    st.raf = requestAnimationFrame(step);
-  }
-
 
   /* ============================================================
-     ❾  PC — WHEEL HANDLER (single listener, owns everything)
-     ──────────────────────────────────────────────────────────
-     SNAP-MODE panels (no smooth flag, or content doesn't
-     overflow): preventDefault always; accumulate delta; snap
-     once the accumulated delta crosses a threshold.
-
-     SMOOTH-MODE panels: preventDefault always too — but instead
-     of handing the tick to the browser, we feed it into the
-     eased rAF loop above. While there's room left to scroll,
-     wheel input only eases the inner content — it can't leak
-     into a section change. Only once the user is already
-     pinned at the top/bottom edge AND keeps scrolling outward
-     does a separate "boundary push" accumulator fill up and
-     trigger moveTo().
-  ============================================================ */
-  function onWheel(e) {
-    if (IS_TOUCH) return;
-    if (S.moving || S.wheel.locked) { e.preventDefault(); return; }
-
-    var idx = S.current;
-
-    if (!wantsSmooth(idx)) {
-      e.preventDefault();
-      _snapModeWheel(e.deltaY);
-      return;
-    }
-
-    e.preventDefault();
-
-    var st       = S.panelState[idx];
-    var atBottom = isAtBottom(idx);
-    var atTop    = isAtTop(idx);
-
-    if (e.deltaY > 0 && atBottom && idx < TOTAL - 1) {
-      _accumulateBoundaryPush(idx, e.deltaY);
-      return;
-    }
-    if (e.deltaY < 0 && atTop && idx > 0) {
-      _accumulateBoundaryPush(idx, e.deltaY);
-      return;
-    }
-
-    // Not pinned at an outward edge — this tick is normal inner
-    // scrolling, so clear any stale boundary-push accumulation
-    // and feed the eased scroll loop instead.
-    if (st) { st.boundaryAcc = 0; clearTimeout(st.boundaryTimer); }
-    addWheelVelocity(idx, e.deltaY);
-  }
-
-  function _accumulateBoundaryPush(idx, deltaY) {
-    var st = S.panelState[idx];
-    if (!st) return;
-    st.boundaryAcc += Math.abs(deltaY);
-    clearTimeout(st.boundaryTimer);
-
-    if (st.boundaryAcc >= CFG.WHEEL_ACCUM_FOR_SNAP) {
-      var dir = deltaY > 0 ? 1 : -1;
-      st.boundaryAcc = 0;
-      if (moveTo(dir)) _lockWheel();
-      return;
-    }
-    st.boundaryTimer = setTimeout(function () {
-      st.boundaryAcc = 0;
-    }, CFG.WHEEL_BOUNDARY_DECAY);
-  }
-
-  function _snapModeWheel(deltaY) {
-    var w = S.wheel;
-    w.snapAcc += deltaY;
-    clearTimeout(w.snapTimer);
-    if (Math.abs(w.snapAcc) >= CFG.WHEEL_ACCUM_FOR_SNAP) {
-      var dir = w.snapAcc > 0 ? 1 : -1;
-      w.snapAcc = 0;
-      if (moveTo(dir)) _lockWheel();
-    } else {
-      w.snapTimer = setTimeout(function () { w.snapAcc = 0; }, CFG.WHEEL_BOUNDARY_DECAY);
-    }
-  }
-
-  function _lockWheel() {
-    var w    = S.wheel;
-    w.locked = true;
-    w.snapAcc = 0;
-    clearTimeout(w.lockTimer);
-    w.lockTimer = setTimeout(function () { w.locked = false; }, CFG.MOVE_COOLDOWN);
-  }
-
-
-  /* ============================================================
-     ❿  TOUCH — BOUNDARY-AWARE SINGLE SWIPE
-     ──────────────────────────────────────────────────────────
-     The browser scrolls .section-content natively on touch —
-     that's already smooth (native momentum), so we never touch
-     scrollTop ourselves here. What we control is WHEN reaching
-     a boundary is allowed to advance to the next section — and
-     that's now decided on the SAME touch that reaches it, live,
-     with no settle wait and no requirement that it be a second,
-     separate touch.
-
-     On touchend we compare two distances covering the same touch:
-       • dY           — how far the finger actually travelled
-       • actualScroll — how far the content itself scrolled
-
-     While there's room left to scroll, those two stay roughly
-     equal. Once the content hits the top/bottom edge it can't
-     absorb any more of the drag, so the gap between them — the
-     PULL — starts growing in real time. Once PULL crosses
-     TOUCH_PULL_THRESHOLD while sitting at the relevant edge, that
-     single touch snaps immediately on release. A fast flick needs
-     less pull (TOUCH_FLICK_PULL_THRESHOLD) since speed alone
-     already signals intent.
-
-     This keeps the important guarantee from before — a normal
-     reading swipe that merely reaches the edge still just comes
-     to rest, it doesn't yank you into the next section — but
-     drops the artificial two-touch requirement that made every
-     transition feel like it needed a "warm-up" swipe first. It
-     also fixes the up-direction specifically: PULL is measured
-     fresh against this touch's own scroll delta, not a cached
-     flag that only got set by a previous scroll event, so
-     swiping back up the instant you arrive at a fresh panel
-     (scrollTop already 0, nothing left to absorb the drag) works
-     on the very first attempt — same as reaching the bottom
-     after reading does.
-  ============================================================ */
-  var touchLocked = false;
-  function _lockTouchBriefly() {
-    touchLocked = true;
-    setTimeout(function () { touchLocked = false; }, CFG.MOVE_COOLDOWN);
-  }
-
-  function initTouchHandlers() {
-
-    panels.forEach(function (panel, idx) {
-      // Fall back to the panel itself if a .section-content wrapper is
-      // ever missing on some future panel — a panel must never silently
-      // end up with zero touch handling just because a wrapper class
-      // was left off (this is exactly what was broken before: About
-      // and Reviews had no .section-content, so this used to just
-      // `return` and those two panels got no touch listeners at all).
-      var c = panel.querySelector('.section-content') || panel;
-
-      var startY        = null;  // finger clientY at touchstart
-      var startX        = null;  // finger clientX at touchstart
-      var scrollAtStart = 0;     // c.scrollTop at touchstart
-      var startTime     = 0;     // e.timeStamp at touchstart
-
-      function onStart(e) {
-        if (S.moving || touchLocked || idx !== S.current) return;
-        if (e.touches.length > 1) return; // ignore pinch/multi-touch
-        startY        = e.touches[0].clientY;
-        startX        = e.touches[0].clientX;
-        scrollAtStart = c.scrollTop;
-        startTime     = e.timeStamp;
-      }
-
-      // A touch can end without touchend ever firing — iOS Control
-      // Center / Notification Center swipes and Android's edge
-      // back-gesture both cancel the in-progress touch instead. Left
-      // alone, that would strand `startY` set, and the next unrelated
-      // touchend elsewhere wouldn't fix it (each panel tracks its own
-      // startY). Dropping it here just means the interrupted gesture
-      // is treated as if it never started, which is the correct call.
-      function onCancel() {
-        startY = null;
-        startX = null;
-      }
-
-      function onEnd(e) {
-        if (startY === null) return;
-        var fromY      = startY;
-        var fromX      = startX;
-        var fromScroll = scrollAtStart;
-        var fromTime   = startTime;
-        startY = null;
-        startX = null;
-        if (S.moving || touchLocked || idx !== S.current) return;
-
-        var endY = e.changedTouches[0].clientY;
-        var endX = e.changedTouches[0].clientX;
-        var dY   = fromY - endY; // positive = dragged up = wants next section
-        var dX   = fromX - endX;
-
-        // A swipe that travelled more horizontally than vertically
-        // belongs to something else on the panel (the reviews carousel
-        // drag, e.g.) — never treat it as a request to change section.
-        // Genuine up/down swipes are untouched by this, since they
-        // naturally have dY well above dX already.
-        if (Math.abs(dX) > Math.abs(dY)) return;
-
-        // ── Sections with no inner scroll at all (e.g. Hero) ──
-        // Plain swipe-to-change-section, single motion.
-        if (!isScrollable(idx)) {
-          if (Math.abs(dY) < CFG.SWIPE_THRESHOLD) return;
-          var dir = dY > 0 ? 1 : -1;
-          if (dir === 1 && idx < TOTAL - 1) { if (moveTo(1)) _lockTouchBriefly(); }
-          else if (dir === -1 && idx > 0)   { if (moveTo(-1)) _lockTouchBriefly(); }
-          return;
-        }
-
-        // ── Scrollable sections: PULL = finger travel the content
-        //    couldn't absorb. Only grows once an edge is hit. Reads
-        //    are clamped to the valid [0, range] scroll span because
-        //    some mobile browsers (iOS Safari in particular) report a
-        //    transient rubber-band overshoot past 0/max mid-bounce,
-        //    which would otherwise throw the measurement off by a few
-        //    stray px right as the finger lifts. ──
-        var range        = scrollRange(idx);
-        var clampedStart = Math.max(0, Math.min(range, fromScroll));
-        var clampedNow   = Math.max(0, Math.min(range, c.scrollTop));
-        var actualScroll = clampedNow - clampedStart;
-        var pull         = Math.abs(dY) - Math.abs(actualScroll);
-
-        var elapsed  = Math.max(1, e.timeStamp - fromTime);
-        var velocity = Math.abs(dY) / elapsed; // px/ms
-        var needed   = velocity >= CFG.TOUCH_FLICK_VELOCITY
-          ? CFG.TOUCH_FLICK_PULL_THRESHOLD
-          : CFG.TOUCH_PULL_THRESHOLD;
-
-        if (pull < needed) return;
-
-        if (dY > 0 && isAtBottom(idx) && idx < TOTAL - 1) {
-          if (moveTo(1)) _lockTouchBriefly();
-          return;
-        }
-        if (dY < 0 && isAtTop(idx) && idx > 0) {
-          if (moveTo(-1)) _lockTouchBriefly();
-        }
-      }
-
-      c.addEventListener('touchstart',  onStart,  { passive: true });
-      c.addEventListener('touchend',    onEnd,    { passive: true });
-      c.addEventListener('touchcancel', onCancel, { passive: true });
-
-      S.panelState[idx]._touchCleanup = function () {
-        c.removeEventListener('touchstart', onStart);
-        c.removeEventListener('touchend', onEnd);
-        c.removeEventListener('touchcancel', onCancel);
-      };
-
-      S.panelState[idx]._resetTouchRest = function () {
-        startY = null;
-        startX = null;
-      };
-    });
-  }
-
-
-  /* ============================================================
-     ⓬  PC — HYBRID SWIPE (trackpad tablets, Surface, etc.)
-         IS_TOUCH === false but touch events fire.
-  ============================================================ */
-  var hybrid = { startY: null, startX: null, locked: false };
-
-  function onHybridTouchStart(e) {
-    if (IS_TOUCH || e.touches.length > 1) return;
-    hybrid.startY = e.touches[0].clientY;
-    hybrid.startX = e.touches[0].clientX;
-  }
-
-  function onHybridTouchEnd(e) {
-    if (IS_TOUCH || hybrid.startY === null) return;
-    if (S.moving || hybrid.locked) { hybrid.startY = null; hybrid.startX = null; return; }
-
-    var dY = hybrid.startY - e.changedTouches[0].clientY;
-    var dX = hybrid.startX - e.changedTouches[0].clientX;
-    hybrid.startY = null; hybrid.startX = null;
-
-    if (Math.abs(dX) > Math.abs(dY) || Math.abs(dY) < CFG.SWIPE_THRESHOLD) return;
-
-    var dir = dY > 0 ? 1 : -1;
-    if (wantsSmooth(S.current)) {
-      if (dir === 1 && !isAtBottom(S.current)) return;
-      if (dir === -1 && !isAtTop(S.current)) return;
-    }
-
-    if (moveTo(dir)) {
-      hybrid.locked = true;
-      setTimeout(function () { hybrid.locked = false; }, CFG.MOVE_COOLDOWN);
-    }
-  }
-
-
-    /* ============================================================
      ⓭  KEYBOARD — Skips when user is typing in forms
   ============================================================ */
   function onKeydown(e) {
@@ -655,7 +281,7 @@
       var tag = activeEl.tagName;
       var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
       var isContentEditable = activeEl.isContentEditable;
-      
+
       if (isInput || isContentEditable) {
         // User is typing in a form field — don't hijack their keys
         return;
@@ -681,15 +307,15 @@
      ⓮  DOT NAVIGATION
   ============================================================ */
   // Update DOT_LABELS to match your actual sections
-var DOT_LABELS = [
-  'HOME',          // 0: #section-landing
-  'ABOUT',         // 1: #section-about  
-  'SERVICES',      // 2: #section-services
-  'REVIEWS',       // 3: #section-reviews
-  'COVERAGE',      // 4: #section-coverage
-  'FAQ',           // 5: #section-faq
-  'CONTACT',       // 6: #footer
-];
+  var DOT_LABELS = [
+    'HOME',          // 0: #section-landing
+    'ABOUT',         // 1: #section-about
+    'SERVICES',      // 2: #section-services
+    'REVIEWS',       // 3: #section-reviews
+    'COVERAGE',      // 4: #section-coverage
+    'FAQ',           // 5: #section-faq
+    'CONTACT',       // 6: #footer
+  ];
   function updateDots(index) {
     if (!dotList) return;
     dotList.querySelectorAll('li').forEach(function (li, i) {
@@ -714,12 +340,12 @@ var DOT_LABELS = [
       li.appendChild(span);
       li.addEventListener('pointerup', function (e) {
         e.preventDefault();
-        if (!S.moving) goTo(i);
+        goTo(i);
       });
       li.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          if (!S.moving) goTo(i);
+          goTo(i);
         }
       });
       dotList.appendChild(li);
@@ -729,60 +355,18 @@ var DOT_LABELS = [
 
 
   /* ============================================================
-     ⓯  PC SMOOTH TOGGLE  (#smooth-toggle)
-  ============================================================ */
-  function initSmoothToggle() {
-    if (!smoothToggle || IS_TOUCH) return;
-
-    var stored = localStorage.getItem('velora-smooth');
-    if (stored === 'on') {
-      S.globalSmooth = true;
-      smoothToggle.classList.add('active');
-      smoothToggle.setAttribute('aria-checked', 'true');
-      document.documentElement.classList.add('velora-smooth-all');
-    }
-
-    smoothToggle.addEventListener('click', function () {
-      S.globalSmooth = !S.globalSmooth;
-      smoothToggle.classList.toggle('active', S.globalSmooth);
-      smoothToggle.setAttribute('aria-checked', String(S.globalSmooth));
-      localStorage.setItem('velora-smooth', S.globalSmooth ? 'on' : 'off');
-      document.documentElement.classList.toggle('velora-smooth-all', S.globalSmooth);
-      console.log('[VELORA] Global smooth:', S.globalSmooth ? 'ON' : 'OFF');
-    });
-  }
-
-
-  /* ============================================================
-     ⓰  PC SCROLL-DRIFT GUARD
-  ============================================================ */
-  function initDriftGuard() {
-    if (IS_TOUCH) return;
-    var driftTimer;
-    container.addEventListener('scroll', function () {
-      if (S.moving) return;
-      clearTimeout(driftTimer);
-      driftTimer = setTimeout(function () {
-        var target = panels[S.current] ? panels[S.current].offsetTop : 0;
-        if (Math.abs(container.scrollTop - target) > 2) {
-          container.scrollTop = target;
-        }
-      }, 60);
-    }, { passive: true });
-  }
-
-
-  /* ============================================================
      ⓱  RESIZE
+     ──────────────────────────────────────────────────────────
+     Native scroll-snap re-settles on its own when the layout
+     changes size (address-bar show/hide, rotation, keyboard open),
+     so there's no drift to correct here — just refresh backgrounds
+     for the new orientation/aspect ratio.
   ============================================================ */
   var resizeTimer;
   function onResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       assignBackgrounds();
-      if (!S.moving && !IS_TOUCH && panels[S.current]) {
-        container.scrollTop = panels[S.current].offsetTop;
-      }
     }, 150);
   }
 
@@ -2691,19 +2275,9 @@ var DOT_LABELS = [
     assignBackgrounds();
     if (TOTAL > 0) buildDots();
 
-    if (!IS_TOUCH) {
-      container.addEventListener('wheel', onWheel, { passive: false });
-
-      initDriftGuard();
-      initSmoothToggle();
-
-      container.addEventListener('touchstart', onHybridTouchStart, { passive: true });
-      container.addEventListener('touchend',   onHybridTouchEnd,   { passive: true });
-    }
-
-    if (IS_TOUCH) {
-    initTouchHandlers();
-    }
+    // Native CSS scroll-snap (style.css) handles wheel/touch/trackpad/
+    // keyboard scrolling physics directly — no listeners needed here.
+    initSectionObserver();
 
     window.addEventListener('keydown', onKeydown);
     window.addEventListener('resize',  onResize);
@@ -2714,9 +2288,8 @@ var DOT_LABELS = [
     if (typeof initStatCounters   === 'function') initStatCounters();
     if (typeof handleDeepLink     === 'function') handleDeepLink();
 
-    console.log('[VELORA] v7 ready — ' + TOTAL + ' panels | ' +
-      (IS_TOUCH ? 'Touch (single-swipe boundary snap)' :
-       'PC (eased-inner-scroll' + (S.globalSmooth ? '+smooth-all' : '') + ')'));
+    console.log('[VELORA] v8 ready — ' + TOTAL + ' panels | native CSS scroll-snap (' +
+      (IS_TOUCH ? 'touch' : 'PC') + ')');
   }
 
   if (document.readyState === 'loading') {
@@ -2726,17 +2299,9 @@ var DOT_LABELS = [
   }
 
   window.addEventListener('pagehide', function () {
-    if (!IS_TOUCH) {
-      container.removeEventListener('wheel', onWheel);
-      container.removeEventListener('touchstart', onHybridTouchStart);
-      container.removeEventListener('touchend',   onHybridTouchEnd);
-    }
     window.removeEventListener('keydown', onKeydown);
     window.removeEventListener('resize',  onResize);
-    S.panelState.forEach(function (st) {
-      if (st.raf) cancelAnimationFrame(st.raf);
-      if (st._touchCleanup) st._touchCleanup();
-    });
+    clearTimeout(moveLockTimer);
   });
 
 }());

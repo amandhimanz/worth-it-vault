@@ -103,18 +103,18 @@
      ❶  CONSTANTS
   ============================================================ */
   var CFG = {
-    MOVE_COOLDOWN       : 700,   // ms — section transition lock duration
+    MOVE_COOLDOWN       : 550,   // ms — section transition lock duration (was 700 — felt sluggish)
     EDGE_TOLERANCE      : 6,     // px — how close to edge counts as "at boundary"
-    SWIPE_THRESHOLD     : 50,    // px — minimum swipe for fit-viewport panels (no inner scroll)
-    OVERLAY_DURATION    : 180,   // ms — flash overlay visible time
+    SWIPE_THRESHOLD     : 45,    // px — minimum swipe for fit-viewport panels (no inner scroll)
+    OVERLAY_DURATION    : 150,   // ms — flash overlay visible time
 
     // PC inner-scroll easing (wheel-driven, JS-owned rAF loop)
-    WHEEL_STEP_GAIN      : 0.35,  // how much of each wheel delta becomes added velocity (lower = gentler)
-    WHEEL_FRICTION       : 0.92,  // velocity decay per animation frame (closer to 1 = glides longer)
+    WHEEL_STEP_GAIN      : 0.42,  // how much of each wheel delta becomes added velocity (higher = punchier response)
+    WHEEL_FRICTION       : 0.88,  // velocity decay per animation frame (lower = settles faster, less "heavy" drift)
     WHEEL_MIN_VELOCITY   : 0.05,  // px/frame — below this, the animation loop stops itself
-    WHEEL_MAX_VELOCITY   : 28,    // px/frame cap — keeps one aggressive wheel tick from launching too far
-    WHEEL_ACCUM_FOR_SNAP : 90,    // px of "pushing past the edge" needed before section changes
-    WHEEL_BOUNDARY_DECAY : 350,   // ms — reset boundary-push accumulator if wheel goes idle
+    WHEEL_MAX_VELOCITY   : 34,    // px/frame cap — keeps one aggressive wheel tick from launching too far
+    WHEEL_ACCUM_FOR_SNAP : 70,    // px of "pushing past the edge" needed before section changes (was 90 — took too long to trigger)
+    WHEEL_BOUNDARY_DECAY : 300,   // ms — reset boundary-push accumulator if wheel goes idle
 
     // Touch: on touchend we compare how far the finger travelled to how
     // far the content actually scrolled during that same touch. Once an
@@ -123,11 +123,10 @@
     // live on every touch, no settle wait and no requirement that it be
     // a new, separate touch. A fast flick needs less pull to confirm,
     // since speed alone already signals intent.
-    TOUCH_PULL_THRESHOLD       : 24,   // px of "un-absorbable" drag needed at the edge to snap
-    TOUCH_FLICK_VELOCITY       : 0.5,  // px/ms — drags at or above this speed count as a flick
-    TOUCH_FLICK_PULL_THRESHOLD : 10,   // px of pull needed at the edge when it's a fast flick
+    TOUCH_PULL_THRESHOLD       : 18,   // px of "un-absorbable" drag needed at the edge to snap (was 24)
+    TOUCH_FLICK_VELOCITY       : 0.45, // px/ms — drags at or above this speed count as a flick (was 0.5)
+    TOUCH_FLICK_PULL_THRESHOLD : 8,    // px of pull needed at the edge when it's a fast flick (was 10)
   };
-
 
   /* ============================================================
      ❷  DEVICE DETECTION

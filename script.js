@@ -1495,7 +1495,6 @@
 
 
 
-
 // ── PASTE SECTION-BOOKING BELOW ──
 
 (function () {
@@ -1519,14 +1518,17 @@
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   }
 
-  /* ── Helper: Scroll inside the section's content area ── */
+  /* ── Helper: Scroll inside the section's content area ──
+     Only used on desktop; mobile reflow is handled by CSS, so we skip it
+     to avoid conflicts with snap‑scroll and potential crashes. */
   function scrollToSectionTop() {
+    if (isTouchMobile()) return;                 // ← NO scroll on mobile
     var content = section.querySelector('.section-content');
     if (!content) return;
-    if (isTouchMobile()) {
-      content.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      content.scrollTop = 0; // unchanged desktop behavior
+    try {
+      content.scrollTop = 0;
+    } catch (e) {
+      // ignore if element is not scrollable for any reason
     }
   }
 
@@ -1562,7 +1564,7 @@
       if (submitBtn) submitBtn.click();
     });
 
-    // Keep swipes on this bar from ever reaching the snap-scroll system
+    // Keep swipes on this bar from ever reaching the snap‑scroll system
     ['touchstart', 'touchend'].forEach(function (evt) {
       mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
     });
@@ -1575,6 +1577,7 @@
     if (window.visualViewport) {
       var updateCtaOffset = function () {
         if (!isTouchMobile()) return;
+        if (!mobileCta) return;                 // safeguard if element removed
         var vv = window.visualViewport;
         var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         mobileCta.style.bottom = kb + 'px';
@@ -1620,10 +1623,8 @@
           if (successEl) successEl.classList.add('whbk-success--visible');
           form.reset();
 
-          // ── SCROLL TO TOP OF SECTION CONTENT ──
-          setTimeout(function () {
-            scrollToSectionTop();
-          }, 150);
+          // No scroll on mobile – CSS already reflows the overlay
+          setTimeout(scrollToSectionTop, 150);
 
         } else {
           // Error from server
@@ -1650,16 +1651,8 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whbk-success--visible');
       form.classList.remove('whbk-form--hidden');
-      // Scroll back to form inside the section
-      setTimeout(function () {
-        var content = section.querySelector('.section-content');
-        if (!content) return;
-        if (isTouchMobile()) {
-          content.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          content.scrollTop = 0;
-        }
-      }, 100);
+      // Desktop: scroll back to form inside the section
+      setTimeout(scrollToSectionTop, 100);
     });
   }
 
@@ -1684,7 +1677,11 @@
     io.observe(section);
   }
 
-  /* ── Patch engine ── */
+  /* ── Patch engine ──
+     NOTE: If you have BOTH booking and careers sections on the same page,
+     only the last one loaded will patch voidGoToSection. You should merge
+     both patches into a single function that handles both sections.
+     This does NOT cause a crash, but may make one section unresponsive. */
   (function patchGoTo() {
     var attempts = 0;
     var poll = setInterval(function () {
@@ -1732,14 +1729,17 @@
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   }
 
-  /* ── Helper: Scroll inside the section's content area ── */
+  /* ── Helper: Scroll inside the section's content area ──
+     Only used on desktop; mobile reflow is handled by CSS, so we skip it
+     to avoid conflicts with snap‑scroll and potential crashes. */
   function scrollToSectionTop() {
+    if (isTouchMobile()) return;                 // ← NO scroll on mobile
     var content = section.querySelector('.section-content');
     if (!content) return;
-    if (isTouchMobile()) {
-      content.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      content.scrollTop = 0; // unchanged desktop behavior
+    try {
+      content.scrollTop = 0;
+    } catch (e) {
+      // ignore if element is not scrollable for any reason
     }
   }
 
@@ -1775,7 +1775,7 @@
       if (submitBtn) submitBtn.click();
     });
 
-    // Keep swipes on this bar from ever reaching the snap-scroll system
+    // Keep swipes on this bar from ever reaching the snap‑scroll system
     ['touchstart', 'touchend'].forEach(function (evt) {
       mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
     });
@@ -1788,6 +1788,7 @@
     if (window.visualViewport) {
       var updateCtaOffset = function () {
         if (!isTouchMobile()) return;
+        if (!mobileCta) return;                 // safeguard if element removed
         var vv = window.visualViewport;
         var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         mobileCta.style.bottom = kb + 'px';
@@ -1833,10 +1834,8 @@
           if (successEl) successEl.classList.add('whcr-success--visible');
           form.reset();
 
-          // Scroll to top of section content
-          setTimeout(function () {
-            scrollToSectionTop();
-          }, 150);
+          // No scroll on mobile – CSS already reflows the overlay
+          setTimeout(scrollToSectionTop, 150);
 
         } else {
           // Error from server
@@ -1863,15 +1862,8 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whcr-success--visible');
       form.classList.remove('whcr-form--hidden');
-      setTimeout(function () {
-        var content = section.querySelector('.section-content');
-        if (!content) return;
-        if (isTouchMobile()) {
-          content.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          content.scrollTop = 0;
-        }
-      }, 100);
+      // Desktop: scroll back to form inside the section
+      setTimeout(scrollToSectionTop, 100);
     });
   }
 
@@ -1896,7 +1888,8 @@
     io.observe(section);
   }
 
-  /* ── Patch engine ── */
+  /* ── Patch engine ──
+     Same note as for booking: if both sections exist, combine the patches. */
   (function patchGoTo() {
     var attempts = 0;
     var poll = setInterval(function () {

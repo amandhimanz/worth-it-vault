@@ -154,14 +154,8 @@ a { color: inherit; text-decoration: none; }
   height: 100dvh;
   overflow-y: scroll;
   overflow-x: hidden;
-  scroll-behavior: smooth;          /* native smooth scroll for keyboard/anchor jumps */
-  /* Native CSS scroll-snap — the browser compositor owns the physics for
-     every input type (wheel, trackpad, touch, keyboard, scrollbar), so it
-     always comes to rest exactly on a panel boundary. This is what fixes
-     "gets stuck between sections" on mobile: there is no custom JS frame
-     loop that can drop a frame or get interrupted mid-transition. */
-  scroll-snap-type: y mandatory;
-  overscroll-behavior-y: none;
+  scroll-behavior: auto;            /* JS uses scrollTo({behavior:'smooth'}) */
+  scroll-snap-type: none !important;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -184,12 +178,7 @@ a { color: inherit; text-decoration: none; }
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: scroll;
-  /* Each panel is a snap point. scroll-snap-stop:always means even a fast
-     fling can't skip past a panel — every section gets a full, deliberate
-     stop, which is what makes "up and down" feel controlled instead of
-     ever landing half-way between two sections. */
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  scroll-snap-align: none !important;
 }
 
 /* Cinematic vignette */
@@ -4602,4 +4591,132 @@ a { color: inherit; text-decoration: none; }
   clip: rect(0,0,0,0);
   white-space: nowrap;
   border: 0;
+}
+
+
+/* ============================================================
+   MOBILE / TOUCH — SPEED, PERFORMANCE & OVERFLOW FIXES
+   ============================================================
+   Everything in this block is scoped to
+   (hover: none) and (pointer: coarse) — real touch devices only.
+   Every desktop rule above this point is completely untouched,
+   so PC behaviour is unaffected.
+
+   What this fixes:
+   1) A couple of section wraps (Reviews, FAQ) center their
+      content with flexbox. When that content is taller than the
+      screen, centering clips the TOP of it off-screen before the
+      user scrolls up — it looks like content is missing/overlapping
+      the nav. Forcing them to start from the top removes that.
+   2) Heavy backdrop-filter blur (20–28px) is one of the most
+      expensive things a phone GPU can be asked to redraw every
+      frame during a fast flick-scroll — it's a common real cause
+      of scroll jank that has nothing to do with the scroll logic
+      itself. Turning it down (not off) keeps the glass look while
+      costing far less per frame.
+   3) Reveal/hover-style transitions use the same shared timing
+      tokens (--wh-t-fast/base/slow/slower, --dur-fast/snap,
+      --wh-stagger) everywhere. Shortening just those tokens here
+      makes every section's entrance animation react faster on
+      quick swipes, without editing each section individually and
+      without touching the desktop timing at all.
+   ============================================================ */
+@media (hover: none) and (pointer: coarse) {
+
+  /* ---- 1. stop centered content from clipping its own top ---- */
+  .whr-wrap,
+  .whf-wrap {
+    justify-content: flex-start !important;
+    align-items: center !important;
+  }
+
+  /* ---- 2. lighter blur = less GPU cost while scrolling ---- */
+  .wh-nav,
+  .wh-pill,
+  .h-eyebrow,
+  .whr-eyebrow,
+  .wha-eyebrow,
+  .whf-eyebrow,
+  .whr-card__shell,
+  .whf-item,
+  .whs-card__badge,
+  .whs-card__tag,
+  .wha-map-card__badge,
+  .wha-map-card__legend,
+  .whfoot-cta-frame,
+  .whfoot-strip,
+  .wh-nav__links {
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+
+  /* ---- no gray tap-flash sitting on top of gold/glass surfaces ---- */
+  a, button,
+  .whf-item__clickable,
+  .whr-dot,
+  .wh-nav__toggle,
+  .wh-pill,
+  .whfoot-strip__credit {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---- 3. snappier shared timing tokens, touch only ---- */
+  :root {
+    --dur-snap     : 0.36s;
+    --dur-fast     : 0.15s;
+    --wh-t-fast    : 0.22s;
+    --wh-t-base    : 0.42s;
+    --wh-t-slow    : 0.6s;
+    --wh-t-slower  : 0.85s;
+    --wh-stagger   : 0.08s;
+  }
+
+  /* Entrance-animation delays that were hand-tuned in seconds for
+     desktop's slower cinematic pace would otherwise all still fire
+     at their original (slow) offsets even with the faster durations
+     above — tighten the stagger chains that matter most on a phone
+     screen so content finishes appearing well within one fast swipe. */
+  .whs-services.is-visible .whs-eyebrow { animation-delay: 0.00s; }
+  .whs-services.is-visible .whs-company { animation-delay: 0.05s; }
+  .whs-services.is-visible .whs-hl--1   { animation-delay: 0.10s; }
+  .whs-services.is-visible .whs-hl--2   { animation-delay: 0.15s; }
+  .whs-services.is-visible .whs-hl--3   { animation-delay: 0.20s; }
+  .whs-services.is-visible .whs-body    { animation-delay: 0.26s; }
+  .whs-services.is-visible .whs-pillars { animation-delay: 0.30s; }
+  .whs-services.is-visible .whs-pillar:nth-child(1) { animation-delay: 0.34s; }
+  .whs-services.is-visible .whs-pillar:nth-child(2) { animation-delay: 0.40s; }
+  .whs-services.is-visible .whs-pillar:nth-child(3) { animation-delay: 0.46s; }
+  .whs-services.is-visible .whs-pillar:nth-child(4) { animation-delay: 0.52s; }
+  .whs-services.is-visible .whs-card--primary   { animation-delay: 0.16s; }
+  .whs-services.is-visible .whs-card--secondary { animation-delay: 0.26s; }
+
+  .h-datastrip__item:nth-child(1) { animation-delay: 0.12s; }
+  .h-datastrip__item:nth-child(3) { animation-delay: 0.18s; }
+  .h-datastrip__item:nth-child(5) { animation-delay: 0.24s; }
+  .h-datastrip__item:nth-child(7) { animation-delay: 0.30s; }
+
+  /* Coverage-section route line & stats reveal instantly rather
+     than drawing in over 1.3s — on a fast swipe past this section
+     a slow draw-in reads as "half missing" instead of finished. */
+  .ab-route-line--active { transition-duration: 0.4s; }
+
+  /* Kill the ambient floating/breathing background animations —
+     they cost a repaint every frame for zero benefit on a device
+     the user is actively scrolling past, and are a common source
+     of perceived jank during a fast swipe. */
+  .whf-float,
+  .whr-orb--1, .whr-orb--2,
+  .whf-orb--1, .whf-orb--2 {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ---- iOS/Android momentum + no accidental horizontal drag ---- */
+@media (hover: none) and (pointer: coarse) {
+  html, body { overscroll-behavior: none; }
+  #scroll-container, .section-content {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
 }

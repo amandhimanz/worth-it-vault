@@ -2075,31 +2075,69 @@ var DOT_LABELS = [
   var section = document.getElementById('section-reviews');
   if (!section) return;
 
-  var track   = document.getElementById('whr-track');
-  var cards   = Array.from(track.querySelectorAll('.whr-card'));
-  var dots    = Array.from(document.querySelectorAll('.whr-dot'));
+  var track = document.getElementById('whr-track');
+  if (!track) return;
+
+  var cards = Array.from(track.querySelectorAll('.whr-card'));
+  var dots = Array.from(document.querySelectorAll('.whr-dot'));
   var btnPrev = document.getElementById('whr-prev');
   var btnNext = document.getElementById('whr-next');
-  var ctrEl   = document.getElementById('whr-current');
-  var barEl   = document.getElementById('whr-bar-fill');
+  var ctrEl = document.getElementById('whr-current');
+  var barEl = document.getElementById('whr-bar-fill');
 
-  var total    = cards.length;
-  var current  = 0;
-  var timer    = null;
-  var rafId    = null;
-  var t0       = null;
-  var locked   = false;
-  var paused   = false;
+  var total = cards.length;
+  if (total === 0) return;
 
+  /* ── DETECT TOUCH DEVICE ── */
+  var IS_TOUCH = (
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  );
+
+  /* ── CONFIG ── */
+  var CONFIG = {
+    DESKTOP: {
+      autoPlayDelay: 6000,
+      transitionDuration: 700,
+      lockDuration: 700,
+      swipeThreshold: 48,
+      barUpdateInterval: 12,
+    },
+    MOBILE: {
+      autoPlayDelay: 4000,      // Faster on mobile
+      transitionDuration: 450,   // Faster on mobile
+      lockDuration: 500,
+      swipeThreshold: 34,
+      barUpdateInterval: 16,
+    }
+  };
+
+  var settings = IS_TOUCH ? CONFIG.MOBILE : CONFIG.DESKTOP;
+
+  /* ── STATE ── */
+  var current = 0;
+  var timer = null;
+  var rafId = null;
+  var t0 = null;
+  var locked = false;
+  var paused = false;
+  var isVisible = false;
+  var touchStartX = null;
+  var touchStartY = null;
+  var touchStartTime = 0;
+  var isSwiping = false;
+
+  /* ── POSITION CALCULATION ── */
   function posFor(rel) {
-    if (rel === 0)                        return 'center';
-    if (rel === 1 || rel === -(total-1)) return 'right';
-    if (rel === total-1 || rel === -1)   return 'left';
-    if (rel === 2 || rel === -(total-2)) return 'far-right';
-    if (rel === total-2 || rel === -2)   return 'far-left';
+    if (rel === 0) return 'center';
+    if (rel === 1 || rel === -(total - 1)) return 'right';
+    if (rel === total - 1 || rel === -1) return 'left';
+    if (rel === 2 || rel === -(total - 2)) return 'far-right';
+    if (rel === total - 2 || rel === -2) return 'far-left';
     return 'hidden';
   }
 
+  /* ── RENDER ── */
   function render(idx) {
     var i = ((idx % total) + total) % total;
     current = i;
@@ -2117,174 +2155,461 @@ var DOT_LABELS = [
       dot.setAttribute('aria-selected', on ? 'true' : 'false');
     });
 
-    if (ctrEl) ctrEl.textContent = String(i + 1).padStart(2, '0');
+    if (ctrEl) {
+      ctrEl.textContent = String(i + 1).padStart(2, '0');
+    }
   }
 
+  /* ── NAVIGATION ── */
   function goTo(idx, byUser) {
     if (locked) return;
-    locked = true;
-    setTimeout(function () { locked = false; }, 700);
-    render(idx);
-    if (byUser) resetAuto();
-  }
-  function next(byUser) { goTo(current + 1, byUser); }
-  function prev(byUser) { goTo(current - 1, byUser); }
+    if (idx === current) return;
 
+    locked = true;
+    setTimeout(function () {
+      locked = false;
+    }, settings.lockDuration);
+
+    render(idx);
+
+    if (byUser) {
+      resetAuto();
+    }
+  }
+
+  function next(byUser) {
+    goTo(current + 1, byUser);
+  }
+
+  function prev(byUser) {
+    goTo(current - 1, byUser);
+  }
+
+  /* ── PROGRESS BAR ── */
   function startBar() {
     cancelAnimationFrame(rafId);
     t0 = performance.now();
-    (function tick(now) {
-      var pct = Math.min((now - t0) / 6000 * 100, 100);
-      if (barEl) barEl.style.width = pct + '%';
-      if (pct < 100) rafId = requestAnimationFrame(tick);
-    })(t0);
-  }
-  function stopBar() {
-    cancelAnimationFrame(rafId);
-    if (barEl) barEl.style.width = '0%';
+
+    function tick(now) {
+      var elapsed = now - t0;
+      var pct = Math.min((elapsed / settings.autoPlayDelay) * 100, 100);
+      if (barEl) {
+        barEl.style.width = pct + '%';
+      }
+      if (pct < 100) {
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+    rafId = requestAnimationFrame(tick);
   }
 
+  function stopBar() {
+    cancelAnimationFrame(rafId);
+    if (barEl) {
+      barEl.style.width = '0%';
+    }
+  }
+
+  /* ── AUTO-PLAY ── */
   function startAuto() {
     clearInterval(timer);
+    if (!isVisible || paused) return;
+
     timer = setInterval(function () {
-      if (!paused) { next(false); startBar(); }
-    }, 6000);
+      if (!paused && isVisible) {
+        next(false);
+        startBar();
+      }
+    }, settings.autoPlayDelay);
+
     startBar();
   }
+
   function resetAuto() {
     clearInterval(timer);
     stopBar();
-    if (!paused) startAuto();
-  }
-  function pause()  { paused = true;  clearInterval(timer); cancelAnimationFrame(rafId); }
-  function resume() { paused = false; startAuto(); }
-
-  var tx = null, ty = null;
-  section.addEventListener('touchstart', function (e) {
-    tx = e.touches[0].clientX;
-    ty = e.touches[0].clientY;
-    pause();
-  }, { passive: true });
-  section.addEventListener('touchend', function (e) {
-    if (tx === null) return;
-    var dx = e.changedTouches[0].clientX - tx;
-    var dy = e.changedTouches[0].clientY - ty;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 34) {
-      dx < 0 ? next(true) : prev(true);
+    if (!paused && isVisible) {
+      startAuto();
     }
-    tx = ty = null;
-    resume();
-  }, { passive: true });
+  }
 
-  var mx = null, dragging = false;
-  track.addEventListener('mousedown', function (e) { mx = e.clientX; dragging = false; pause(); });
-  window.addEventListener('mousemove', function (e) {
-    if (mx === null) return;
-    if (Math.abs(e.clientX - mx) > 8) dragging = true;
-  });
-  window.addEventListener('mouseup', function (e) {
-    if (mx === null) return;
-    var dx = e.clientX - mx;
-    if (dragging && Math.abs(dx) > 48) dx < 0 ? next(true) : prev(true);
-    mx = null; dragging = false;
-    resume();
-  });
-  track.addEventListener('dragstart', function (e) { e.preventDefault(); });
+  function pause() {
+    paused = true;
+    clearInterval(timer);
+    cancelAnimationFrame(rafId);
+  }
 
+  function resume() {
+    paused = false;
+    if (isVisible) {
+      startAuto();
+    }
+  }
+
+  /* ── TOUCH HANDLING (Mobile) ── */
+  function handleTouchStart(e) {
+    var touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartTime = Date.now();
+    isSwiping = false;
+    pause();
+  }
+
+  function handleTouchMove(e) {
+    if (touchStartX === null) return;
+    var touch = e.touches[0];
+    var dx = touch.clientX - touchStartX;
+    var dy = touch.clientY - touchStartY;
+
+    // Detect if this is a horizontal swipe
+    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+      isSwiping = true;
+      e.preventDefault();
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX === null) return;
+
+    var endX = e.changedTouches[0].clientX;
+    var endY = e.changedTouches[0].clientY;
+    var dx = endX - touchStartX;
+    var dy = endY - touchStartY;
+    var elapsed = Date.now() - touchStartTime;
+    var velocity = Math.abs(dx) / Math.max(elapsed, 1);
+
+    var threshold = IS_TOUCH ? settings.swipeThreshold : 48;
+
+    // Only trigger if horizontal swipe and strong enough
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+      if (dx < 0) {
+        next(true);
+      } else {
+        prev(true);
+      }
+    }
+
+    touchStartX = null;
+    touchStartY = null;
+    isSwiping = false;
+
+    // Resume auto-play after a small delay
+    setTimeout(function () {
+      resume();
+    }, 200);
+  }
+
+  function handleTouchCancel() {
+    touchStartX = null;
+    touchStartY = null;
+    isSwiping = false;
+    resume();
+  }
+
+  /* ── MOUSE DRAG (Desktop) ── */
+  var mouseStartX = null;
+  var isDragging = false;
+
+  function handleMouseDown(e) {
+    if (IS_TOUCH) return;
+    mouseStartX = e.clientX;
+    isDragging = false;
+    pause();
+  }
+
+  function handleMouseMove(e) {
+    if (mouseStartX === null) return;
+    var dx = e.clientX - mouseStartX;
+    if (Math.abs(dx) > 8) {
+      isDragging = true;
+    }
+  }
+
+  function handleMouseUp(e) {
+    if (mouseStartX === null) return;
+    var dx = e.clientX - mouseStartX;
+    if (isDragging && Math.abs(dx) > settings.swipeThreshold) {
+      if (dx < 0) {
+        next(true);
+      } else {
+        prev(true);
+      }
+    }
+    mouseStartX = null;
+    isDragging = false;
+    resume();
+  }
+
+  /* ── CLICK ON SIDE CARDS ── */
   cards.forEach(function (card) {
     card.addEventListener('click', function () {
       var pos = card.getAttribute('data-pos');
-      if (pos === 'left') prev(true);
-      else if (pos === 'right') next(true);
+      if (pos === 'left') {
+        prev(true);
+      } else if (pos === 'right') {
+        next(true);
+      }
     });
+
+    // Touch feedback for side cards
+    card.addEventListener('touchstart', function (e) {
+      var pos = card.getAttribute('data-pos');
+      if (pos === 'left' || pos === 'right') {
+        card.style.opacity = '0.5';
+      }
+    }, { passive: true });
+
+    card.addEventListener('touchend', function (e) {
+      card.style.opacity = '';
+    }, { passive: true });
   });
 
-  if (btnPrev) btnPrev.addEventListener('click', function () { prev(true); });
-  if (btnNext) btnNext.addEventListener('click', function () { next(true); });
-
-  dots.forEach(function (dot, idx) {
-    dot.addEventListener('click', function () { goTo(idx, true); });
-    dot.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); prev(true); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); next(true); }
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTo(idx, true); }
-    });
-  });
-
-  section.addEventListener('keydown', function (e) {
-    if (e.target.closest('.whr-dots')) return;
-    if (e.key === 'ArrowLeft')  { e.preventDefault(); prev(true); }
-    if (e.key === 'ArrowRight') { e.preventDefault(); next(true); }
-  });
-
-  var isTouch = 'ontouchstart' in window;
-  if (!isTouch) {
-    section.addEventListener('mouseenter', pause);
-    section.addEventListener('mouseleave', resume);
+  /* ── BUTTONS ── */
+  if (btnPrev) {
+    btnPrev.addEventListener('click', function () { prev(true); });
+    btnPrev.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+    }, { passive: true });
   }
-  section.addEventListener('focusin',  pause);
-  section.addEventListener('focusout', function (e) {
-    if (!section.contains(e.relatedTarget)) resume();
+
+  if (btnNext) {
+    btnNext.addEventListener('click', function () { next(true); });
+    btnNext.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+    }, { passive: true });
+  }
+
+  /* ── DOTS ── */
+  dots.forEach(function (dot, idx) {
+    dot.addEventListener('click', function () {
+      goTo(idx, true);
+    });
+
+    dot.addEventListener('touchstart', function (e) {
+      // Prevent double tap issues on mobile
+      e.preventDefault();
+    }, { passive: true });
+
+    dot.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prev(true);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        next(true);
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        goTo(idx, true);
+      }
+    });
   });
 
-  /* ── Intersection ── */
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) {
-          if (!paused) startAuto();
+  /* ── KEYBOARD ── */
+  section.addEventListener('keydown', function (e) {
+    if (e.target.closest('.whr-dots') || e.target.closest('.whr-arrow')) return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      prev(true);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      next(true);
+    }
+  });
+
+  /* ── PAUSE ON HOVER/FOCUS ── */
+  if (!IS_TOUCH) {
+    section.addEventListener('mouseenter', pause);
+    section.addEventListener('mouseleave', function () {
+      if (isVisible) {
+        resume();
+      }
+    });
+  }
+
+  section.addEventListener('focusin', pause);
+  section.addEventListener('focusout', function (e) {
+    if (!section.contains(e.relatedTarget)) {
+      resume();
+    }
+  });
+
+  /* ── TOUCH EVENTS ── */
+  section.addEventListener('touchstart', handleTouchStart, { passive: true });
+  section.addEventListener('touchmove', handleTouchMove, { passive: false });
+  section.addEventListener('touchend', handleTouchEnd, { passive: true });
+  section.addEventListener('touchcancel', handleTouchCancel, { passive: true });
+
+  /* ── MOUSE DRAG EVENTS ── */
+  if (!IS_TOUCH) {
+    track.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    track.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
+  }
+
+  /* ── INTERSECTION OBSERVER ── */
+  function initIntersectionObserver() {
+    if (!('IntersectionObserver' in window)) {
+      isVisible = true;
+      startAuto();
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          isVisible = true;
+          if (!paused) {
+            startAuto();
+          }
         } else {
+          isVisible = false;
           clearInterval(timer);
           stopBar();
         }
       });
-    }, { threshold: 0.35 }).observe(section);
+    }, {
+      threshold: 0.35,
+      rootMargin: '0px 0px -10% 0px'
+    });
+
+    observer.observe(section);
+
+    // Store observer for cleanup
+    window._whrObserver = observer;
   }
 
-  /* ── Patch engine ── */
+  initIntersectionObserver();
+
+  /* ── PATCH ENGINE ── */
   function patchEngine() {
     if (typeof window.voidGoToSection !== 'function') return false;
+
     var orig = window.voidGoToSection;
     var panels = null;
+
     window.voidGoToSection = function (idx) {
-      if (!panels) panels = Array.from(document.querySelectorAll('.panel'));
+      if (!panels) {
+        panels = Array.from(document.querySelectorAll('.panel'));
+      }
       var ours = panels.indexOf(section);
+
       if (idx !== ours) {
+        // Leaving this section
+        isVisible = false;
         clearInterval(timer);
         stopBar();
       }
+
       orig(idx);
+
       if (idx === ours) {
+        // Entering this section
+        isVisible = true;
         setTimeout(function () {
           render(0);
-          startAuto();
+          if (!paused) {
+            startAuto();
+          }
         }, 80);
       }
     };
+
     return true;
   }
 
+  // Try to patch immediately, if not available, poll
   if (!patchEngine()) {
     var tries = 0;
     var poll = setInterval(function () {
-      if (patchEngine() || ++tries > 40) clearInterval(poll);
+      if (patchEngine() || ++tries > 40) {
+        clearInterval(poll);
+      }
     }, 100);
   }
 
-  render(0);
-  startAuto();
+  /* ── RESIZE HANDLER ── */
+  var resizeTimer = null;
+  function handleResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      // Re-render to adjust positions if needed
+      render(current);
+    }, 250);
+  }
+  window.addEventListener('resize', handleResize);
 
+  /* ── CLEANUP ── */
+  window.addEventListener('pagehide', function () {
+    clearInterval(timer);
+    cancelAnimationFrame(rafId);
+    if (window._whrObserver) {
+      window._whrObserver.disconnect();
+    }
+    window.removeEventListener('resize', handleResize);
+
+    if (!IS_TOUCH) {
+      track.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    section.removeEventListener('touchstart', handleTouchStart);
+    section.removeEventListener('touchmove', handleTouchMove);
+    section.removeEventListener('touchend', handleTouchEnd);
+    section.removeEventListener('touchcancel', handleTouchCancel);
+  });
+
+  /* ── INIT ── */
+  render(0);
+
+  // Small delay to ensure everything is ready
+  setTimeout(function () {
+    if (!paused && isVisible) {
+      startAuto();
+    }
+  }, 200);
+
+  /* ── EXPOSE API ── */
   window.whrCarousel = {
-    enter : function () { render(0); startAuto(); },
-    exit  : function () { clearInterval(timer); stopBar(); },
-    goTo  : function (i) { goTo(i, true); }
+    enter: function () {
+      isVisible = true;
+      render(current);
+      if (!paused) startAuto();
+    },
+    exit: function () {
+      isVisible = false;
+      clearInterval(timer);
+      stopBar();
+    },
+    goTo: function (i) {
+      goTo(i, true);
+    },
+    next: function () {
+      next(true);
+    },
+    prev: function () {
+      prev(true);
+    },
+    pause: pause,
+    resume: resume,
+    destroy: function () {
+      clearInterval(timer);
+      cancelAnimationFrame(rafId);
+      if (window._whrObserver) {
+        window._whrObserver.disconnect();
+      }
+    }
   };
+
+  console.log('[Reviews Carousel] Initialized - ' + (IS_TOUCH ? 'TOUCH' : 'DESKTOP') + ' mode');
 
 })();
 
 // ── END SECTION-REVIEWS ──
-
-
 
 // ── PASTE SECTION-COVERAGE BELOW ──
 

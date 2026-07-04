@@ -1513,26 +1513,35 @@
   var errorBtn = document.getElementById('whbk-error-btn');
   var mobileCta = document.getElementById('whbk-mobile-cta');
   var mobileCtaBtn = document.getElementById('whbk-mobile-cta-btn');
+  var formContainer = document.querySelector('.whbk-form-container'); // for locking
 
   function isTouchMobile() {
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   }
 
-  /* ── Helper: Scroll inside the section's content area ──
-     Only used on desktop; mobile reflow is handled by CSS, so we skip it
-     to avoid conflicts with snap‑scroll and potential crashes. */
+  /* ── Helper: Scroll inside the section's content area (desktop only) ── */
   function scrollToSectionTop() {
-    if (isTouchMobile()) return;                 // ← NO scroll on mobile
+    if (isTouchMobile()) return;
     var content = section.querySelector('.section-content');
     if (!content) return;
     try {
       content.scrollTop = 0;
-    } catch (e) {
-      // ignore if element is not scrollable for any reason
+    } catch (e) {}
+  }
+
+  /* ── Lock / unlock container to prevent scrolling into empty form space ── */
+  function lockFormContainer() {
+    if (formContainer && isTouchMobile()) {
+      formContainer.classList.add('whbk-container-locked');
+    }
+  }
+  function unlockFormContainer() {
+    if (formContainer) {
+      formContainer.classList.remove('whbk-container-locked');
     }
   }
 
-  /* ── Floating mobile submit bar (shows above keyboard) ── */
+  /* ── Floating mobile submit bar ── */
   function showMobileCta() {
     if (!mobileCta) return;
     mobileCta.classList.add('whbk-mobile-cta--visible');
@@ -1596,13 +1605,12 @@
 
       if (errorEl) errorEl.classList.remove('whbk-error--visible');
       if (successEl) successEl.classList.remove('whbk-success--visible');
+      unlockFormContainer();               // clear any old lock
 
       fetch('https://formspree.io/f/xeebraeo', {
         method: 'POST',
         body: data,
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
       })
       .then(function (response) {
         if (response.ok) {
@@ -1613,6 +1621,7 @@
           if (successName) successName.textContent = firstName;
           if (successEl) successEl.classList.add('whbk-success--visible');
           form.reset();
+          lockFormContainer();            // lock container to prevent dead scroll
           setTimeout(scrollToSectionTop, 150);
         } else {
           return response.json().then(function (data) {
@@ -1623,6 +1632,7 @@
       .catch(function (err) {
         if (errorText) errorText.textContent = err.message || 'Network error — check your connection.';
         if (errorEl) errorEl.classList.add('whbk-error--visible');
+        lockFormContainer();              // also lock on error to stop scrolling into empty space
       })
       .finally(function () {
         if (submitBtn) {
@@ -1638,6 +1648,7 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whbk-success--visible');
       form.classList.remove('whbk-form--hidden');
+      unlockFormContainer();                // unlock because form is visible again
       setTimeout(scrollToSectionTop, 100);
     });
   }
@@ -1646,6 +1657,7 @@
   if (errorBtn) {
     errorBtn.addEventListener('click', function () {
       if (errorEl) errorEl.classList.remove('whbk-error--visible');
+      unlockFormContainer();                // unlock to allow normal scrolling
     });
   }
 
@@ -1706,6 +1718,7 @@
   var errorBtn = document.getElementById('whcr-error-btn');
   var mobileCta = document.getElementById('whcr-mobile-cta');
   var mobileCtaBtn = document.getElementById('whcr-mobile-cta-btn');
+  var formContainer = document.querySelector('.whcr-form-container');
 
   function isTouchMobile() {
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1715,9 +1728,18 @@
     if (isTouchMobile()) return;
     var content = section.querySelector('.section-content');
     if (!content) return;
-    try {
-      content.scrollTop = 0;
-    } catch (e) {}
+    try { content.scrollTop = 0; } catch (e) {}
+  }
+
+  function lockFormContainer() {
+    if (formContainer && isTouchMobile()) {
+      formContainer.classList.add('whcr-container-locked');
+    }
+  }
+  function unlockFormContainer() {
+    if (formContainer) {
+      formContainer.classList.remove('whcr-container-locked');
+    }
   }
 
   function showMobileCta() {
@@ -1737,17 +1759,14 @@
       if (!section.classList.contains('is-visible')) return;
       if (e.target.matches('input, select, textarea')) showMobileCta();
     });
-
     form.addEventListener('focusout', function () {
       setTimeout(function () {
         if (!form.contains(document.activeElement)) hideMobileCta();
       }, 60);
     });
-
     mobileCtaBtn.addEventListener('click', function () {
       if (submitBtn) submitBtn.click();
     });
-
     ['touchstart', 'touchend'].forEach(function (evt) {
       mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
     });
@@ -1755,7 +1774,6 @@
       e.stopPropagation();
       e.preventDefault();
     }, { passive: false });
-
     if (window.visualViewport) {
       var updateCtaOffset = function () {
         if (!isTouchMobile()) return;
@@ -1772,23 +1790,19 @@
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-
       var data = new FormData(form);
-
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.classList.add('whcr-submit--loading');
       }
-
       if (errorEl) errorEl.classList.remove('whcr-error--visible');
       if (successEl) successEl.classList.remove('whcr-success--visible');
+      unlockFormContainer();
 
       fetch('https://formspree.io/f/xeebraeo', {
         method: 'POST',
         body: data,
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
       })
       .then(function (response) {
         if (response.ok) {
@@ -1799,6 +1813,7 @@
           if (successName) successName.textContent = firstName;
           if (successEl) successEl.classList.add('whcr-success--visible');
           form.reset();
+          lockFormContainer();
           setTimeout(scrollToSectionTop, 150);
         } else {
           return response.json().then(function (data) {
@@ -1809,6 +1824,7 @@
       .catch(function (err) {
         if (errorText) errorText.textContent = err.message || 'Network error — check your connection.';
         if (errorEl) errorEl.classList.add('whcr-error--visible');
+        lockFormContainer();
       })
       .finally(function () {
         if (submitBtn) {
@@ -1823,6 +1839,7 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whcr-success--visible');
       form.classList.remove('whcr-form--hidden');
+      unlockFormContainer();
       setTimeout(scrollToSectionTop, 100);
     });
   }
@@ -1830,6 +1847,7 @@
   if (errorBtn) {
     errorBtn.addEventListener('click', function () {
       if (errorEl) errorEl.classList.remove('whcr-error--visible');
+      unlockFormContainer();
     });
   }
 

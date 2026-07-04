@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="color-scheme" content="dark light">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Premium Scroll | 9 Sections + Footer</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="book.css" />
 </head>
 <body>
 
   <div id="scroll-container">
-
-
+    
 
 
 
@@ -35,15 +35,12 @@
     </a>
 
     <!-- Desktop Links -->
-        <!-- Desktop Links -->
     <ul class="wh-nav__links" id="wh-nav-links">
-      <li><a href="#section-landing" data-nav="landing">Home</a></li>
-      <li><a href="#section-about" data-nav="about">About</a></li>
-      <li><a href="#section-services" data-nav="services">Services</a></li>
-      <li><a href="#section-reviews" data-nav="reviews">Reviews</a></li>
-      <li><a href="#section-coverage" data-nav="coverage">Coverage</a></li>
-      <li><a href="#section-faq" data-nav="faq">FAQ</a></li>
-      <li><a href="#footer" data-nav="footer" class="wh-nav__cta">
+      <li><a href="index.html" data-nav="landing">Home</a></li>
+      <li><a href="contact.html" data-nav="contact-form">Contact</a></li>
+      <li><a href="book.html" data-nav="booking">Book</a></li>
+      
+      <li><a href="book.html" data-nav="footer" class="wh-nav__cta">
         Get Started
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
           <path d="M1 7H13M8 2L13 7L8 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -71,958 +68,320 @@
 
 
 
-
-
-    
-    <!-- ================================================================
-         SECTION 1: HERO 
-    ================================================================= -->
-    <!-- ============================================================
-  § 1  HERO SECTION  –  Western Hawk | Premium
+   <!-- ============================================================
+  LANDING — Bookings & Careers | Western Hawk
   ============================================================ -->
 <section
-  id="section-landing"
-  class="panel hero-panel"
-  data-section="landing"
-  data-bg-landscape="images/ChatGPT Image Jun 25, 2026, 08_32_08 PM.png"
-  data-bg-portrait="images/60870532-0cd2-43f2-9692-03c4cbd3c42b.png"
-  aria-label="Hero — Western Hawk Private Limited"
+  id="section-landing-bc"
+  class="panel"
+  data-section="landing-bc"
+  
+  aria-label="Western Hawk — Bookings & Careers"
+  data-bg-landscape="images/book_career_hero.png"
+  data-bg-portrait="images/phone.png"
+
 >
 
-  <!-- ============================================================
-    SUBTLE BACKGROUND LAYERS
-    ============================================================ -->
-
-  <!-- Architectural ruled grid -->
-  <div class="h-grid" aria-hidden="true">
+  <!-- Atmospheric layers -->
+  <div class="whbc-grid" aria-hidden="true">
     <span></span><span></span><span></span><span></span><span></span>
   </div>
+  <div class="whbc-glow" aria-hidden="true"></div>
+  <div class="whbc-noise" aria-hidden="true"></div>
+  <div class="whbc-vignette" aria-hidden="true"></div>
+  <div class="whbc-diagonal" aria-hidden="true"></div>
+  <div class="whbc-corner whbc-corner--tl" aria-hidden="true"></div>
+  <div class="whbc-corner whbc-corner--br" aria-hidden="true"></div>
+  <div class="whbc-gold-bar" aria-hidden="true"></div>
 
-  <!-- Dual gold glow -->
-  <div class="h-glow" aria-hidden="true"></div>
-  <div class="h-glow-secondary" aria-hidden="true"></div>
+  <!-- ═══════════════ CONTENT ═══════════════ -->
+  <div class="section-content whbc-wrap">
 
-  <!-- Soft noise overlay -->
-  <div class="h-noise" aria-hidden="true"></div>
+    <div class="whbc-content whbc-content--visible" id="whbc-content">
 
-  <!-- Cinematic vignette -->
-  <div class="h-vignette" aria-hidden="true"></div>
-
-  <!-- Diagonal construction lines -->
-  <div class="h-diagonal" aria-hidden="true"></div>
-
-  <!-- Floating particles -->
-  <div class="h-particles" aria-hidden="true">
-    <span></span><span></span><span></span><span></span><span></span>
-  </div>
-
-  <!-- Corner micro-decorations -->
-  <div class="h-corner h-corner--tl" aria-hidden="true"></div>
-  <div class="h-corner h-corner--tr" aria-hidden="true"></div>
-  <div class="h-corner h-corner--bl" aria-hidden="true"></div>
-  <div class="h-corner h-corner--br" aria-hidden="true"></div>
-
-  <!-- ============================================================
-    MAIN CONTENT — WRAPPED IN section-content FOR THE ENGINE
-    ============================================================ -->
-  <div class="section-content" style="all: unset; display: contents;">
-
-    <div class="h-content" id="hero-content">
-
-      <!-- ---- EYEBROW ---- -->
-      <div class="h-eyebrow">
-        <span class="h-eyebrow__dot" aria-hidden="true"></span>
-        <span class="h-eyebrow__text">Premium Freight Network</span>
-        <span class="h-eyebrow__dot" aria-hidden="true"></span>
+      <!-- Eyebrow -->
+      <div class="whbc-eyebrow">
+        <span class="whbc-eyebrow__dot"></span>
+        Western Hawk
+        <span class="whbc-eyebrow__dot"></span>
       </div>
 
-      <!-- ---- PRIMARY HEADLINE ---- -->
-      <h1 class="h-headline" aria-label="Western Hawk Private Limited">
-        <span class="h-hl--word1">Check last again 3</span>
-        <span class="h-hl--word2">Hawk</span>
+      <!-- Headline -->
+      <h1 class="whbc-headline">
+        <span class="whbc-hl--word1">Move With</span>
+        <span class="whbc-hl--word2">Purpose</span>
       </h1>
 
-      <!-- ---- Lockup ---- -->
-      <div class="h-pvt-lockup">
-        <span class="h-pvt-rule" aria-hidden="true"></span>
-        <span class="h-pvt-text">Private Limited</span>
-        <span class="h-pvt-rule" aria-hidden="true"></span>
+      <!-- Lockup -->
+      <div class="whbc-lockup">
+        <span class="whbc-lockup__rule"></span>
+        <span class="whbc-lockup__text">Bookings &amp; Careers</span>
+        <span class="whbc-lockup__rule"></span>
       </div>
 
-      <!-- ---- Supporting statement ---- -->
-      <p class="h-sub">
-        Moving Critical Freight Across North America.
+      <!-- Sub -->
+      <p class="whbc-sub">
+        Whether you're shipping freight or shipping your career — 
+        you're in the right place.
       </p>
 
-      <!-- ---- Trust line ---- -->
-      <p class="h-trust">
-        Trusted by manufacturers, construction companies and industrial partners.
+      <!-- Divider -->
+      <div class="whbc-divider">
+        <span class="whbc-divider__line"></span>
+      </div>
+
+      <!-- ═══════════════ CARDS ═══════════════ -->
+      <div class="whbc-cards">
+
+        <!-- BOOK A SHIPMENT -->
+        <a href="#section-booking" class="whbc-card whbc-card--gold">
+          <div class="whbc-card__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <rect x="1" y="3" width="15" height="13" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M16 8h4l3 5v3h-7V8z" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="whbc-card__body">
+            <h3>Book a Shipment</h3>
+            <p>Full truckload, LTL, cross-border — get your freight moving in minutes.</p>
+          </div>
+          <div class="whbc-card__arrow">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M1 15L15 1M15 1H5M15 1V11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="whbc-card__label">Start Booking</div>
+        </a>
+
+        <!-- JOIN OUR TEAM -->
+        <a href="contact.html" class="whbc-card whbc-card--dark">
+          <div class="whbc-card__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M4 21C4 16.58 7.58 13 12 13C16.42 13 20 16.58 20 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/>
+              <path d="M19 5L21 3M21 3H19.5M21 3V4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="whbc-card__body">
+            <h3>Join Our Team</h3>
+            <p>Drivers, dispatchers, logistics pros — build your career with us.</p>
+          </div>
+          <div class="whbc-card__arrow">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M1 15L15 1M15 1H5M15 1V11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="whbc-card__label">View Openings</div>
+        </a>
+
+      </div>
+
+      <!-- Trust line -->
+      <p class="whbc-trust">
+        1,200+ trucks · 27 hubs · 10 provinces · 48 US states · One team.
       </p>
 
-      <!-- ---- Gold divider ---- -->
-      <div class="h-divider" aria-hidden="true">
-        <span class="h-divider__line"></span>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="whbc-scroll-ind" id="whbc-scroll-ind" aria-hidden="true">
+      <span class="whbc-scroll-ind__line"></span>
+      <span class="whbc-scroll-ind__label">Scroll</span>
+    </div>
+
+    <!-- Stats strip -->
+    <div class="whbc-datastrip">
+      <div class="whbc-datastrip__item">
+        <span class="whbc-datastrip__num">Bookings</span>
+        <span class="whbc-datastrip__lbl">24/7 Online</span>
       </div>
-
-      <!-- ---- CTA GROUP ---- -->
-      <div class="h-cta-group">
-        <a href="book.html" class="h-btn h-btn--gold" role="button">
-          <span class="h-btn__label">Book a Shipment</span>
-          <span class="h-btn__icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1 7H13M8 2L13 7L8 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </a>
-        <a href="contact.html" class="h-btn h-btn--ghost" role="button">
-          <span class="h-btn__label">Contact Us</span>
-          <span class="h-btn__icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1 7H13M8 2L13 7L8 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </a>
+      <div class="whbc-datastrip__div"></div>
+      <div class="whbc-datastrip__item">
+        <span class="whbc-datastrip__num">Careers</span>
+        <span class="whbc-datastrip__lbl">12 Open Roles</span>
       </div>
+      <div class="whbc-datastrip__div"></div>
+      <div class="whbc-datastrip__item">
+        <span class="whbc-datastrip__num">Drivers</span>
+        <span class="whbc-datastrip__lbl">Always Hiring</span>
+      </div>
+      <div class="whbc-datastrip__div"></div>
+      <div class="whbc-datastrip__item">
+        <span class="whbc-datastrip__num">Benefits</span>
+        <span class="whbc-datastrip__lbl">Full Package</span>
+      </div>
+    </div>
 
-    </div><!-- /h-content -->
-
-  </div><!-- /section-content -->
-
-  <!-- ============================================================
-    SCROLL INDICATOR
-    ============================================================ -->
-
-  <div class="h-scroll-ind" id="hero-scroll-ind" aria-hidden="true">
-    <span class="h-scroll-ind__line"></span>
-    <span class="h-scroll-ind__label">Scroll</span>
   </div>
-
-  <!-- ============================================================
-    STATISTICS STRIP
-    ============================================================ -->
-
-  <div class="h-datastrip" aria-label="Key facts">
-
-    <div class="h-datastrip__item">
-      <span class="h-datastrip__num" data-count="1200">1,200+</span>
-      <span class="h-datastrip__lbl">Trucks Active</span>
-    </div>
-
-    <div class="h-datastrip__div" aria-hidden="true"></div>
-
-    <div class="h-datastrip__item">
-      <span class="h-datastrip__num" data-count="99.7">99.7%</span>
-      <span class="h-datastrip__lbl">On-Time Rate</span>
-    </div>
-
-    <div class="h-datastrip__div" aria-hidden="true"></div>
-
-    <div class="h-datastrip__item">
-      <span class="h-datastrip__num" data-count="37">37</span>
-      <span class="h-datastrip__lbl">Countries</span>
-    </div>
-
-    <div class="h-datastrip__div" aria-hidden="true"></div>
-
-    <div class="h-datastrip__item">
-      <span class="h-datastrip__num" data-count="24">24/7</span>
-      <span class="h-datastrip__lbl">Operations</span>
-    </div>
-
-  </div><!-- /h-datastrip -->
-
-  <!-- ============================================================
-    BOTTOM GOLD ACCENT LINE
-    ============================================================ -->
-
-  <div class="h-gold-bar" aria-hidden="true"></div>
 
 </section>
 
-    <!-- ================================================================
-         SECTION 2 
-    ================================================================= -->
-   <!-- ============================================================
-  ABOUT US — Western Hawk Services
-  ============================================================ -->
-<section
-  class="panel whs-services"
-  id="section-about"
-  data-smooth="true"
-  data-section="about"
-  aria-label="Western Hawk Services"
-  data-bg-landscape="images/book_career_hero.png"
-  data-bg-portrait="images/about-bg-mobile.png"
->
-
-  <!-- Directional scrim: heavy left for text, clear right for cards -->
-  <div class="whs-scrim" aria-hidden="true"></div>
-
-  <!-- Ghost hawk watermark -->
-  <div class="whs-watermark" aria-hidden="true">
-    <svg viewBox="0 0 400 340" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M200 40 C160 80 80 100 20 90 C80 110 140 160 160 200 C140 180 120 200 100 240 C130 210 160 220 200 260 C240 220 270 210 300 240 C280 200 260 180 240 200 C260 160 320 110 380 90 C320 100 240 80 200 40Z" fill="currentColor"/>
-    </svg>
-  </div>
-
-  <!-- ── INNER LAYOUT GRID ── -->
-  <div class="section-content whs-inner">
-
-    <!-- LEFT: text -->
-    <div class="whs-left">
-
-      <div class="whs-eyebrow">
-        <span class="whs-eyebrow__line" aria-hidden="true"></span>
-        <span class="whs-eyebrow__text">About Us</span>
-      </div>
-
-      <p class="whs-company">Western Hawk Logistic Limited</p>
-
-      <h2 class="whs-headline" aria-label="Moving What Matters">
-        <span class="whs-hl whs-hl--1">Moving</span>
-        <span class="whs-hl whs-hl--2">What</span>
-        <span class="whs-hl whs-hl--3 whs-hl--gold">Matters.</span>
-      </h2>
-
-      <div class="whs-body">
-        <span class="whs-body__star" aria-hidden="true">✦</span>
-        <p>
-          We are a Canadian trucking company built for the long haul —
-          delivering reliable, on-time freight solutions from coast to coast.
-          With a modern fleet and a commitment to safety, we connect businesses
-          across Canada with the logistics support they can trust.
-        </p>
-      </div>
-
-      <!-- Service pillars list -->
-      <ul class="whs-pillars" role="list" aria-label="Core services">
-
-        <li class="whs-pillar" role="listitem">
-          <div class="whs-pillar__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="1" y="3" width="15" height="13" rx="1"/>
-              <path d="M16 8h4l3 5v3h-7V8z"/>
-              <circle cx="5.5" cy="18.5" r="2.5"/>
-              <circle cx="18.5" cy="18.5" r="2.5"/>
-            </svg>
-          </div>
-          <div class="whs-pillar__text">
-            <span class="whs-pillar__name">Over-the-Road Freight</span>
-            <span class="whs-pillar__desc">Full truckload and LTL across all Canadian provinces.</span>
-          </div>
-          <span class="whs-pillar__arrow" aria-hidden="true">→</span>
-        </li>
-
-        <li class="whs-pillar" role="listitem">
-          <div class="whs-pillar__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-              <line x1="12" y1="22.08" x2="12" y2="12"/>
-            </svg>
-          </div>
-          <div class="whs-pillar__text">
-            <span class="whs-pillar__name">Warehousing & Distribution</span>
-            <span class="whs-pillar__desc">Secure cross-docking and storage in strategic Canadian hubs.</span>
-          </div>
-          <span class="whs-pillar__arrow" aria-hidden="true">→</span>
-        </li>
-
-        <li class="whs-pillar" role="listitem">
-          <div class="whs-pillar__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-          </div>
-          <div class="whs-pillar__text">
-            <span class="whs-pillar__name">Cross-Border & US Shipping</span>
-            <span class="whs-pillar__desc">Seamless freight movement between Canada and the United States.</span>
-          </div>
-          <span class="whs-pillar__arrow" aria-hidden="true">→</span>
-        </li>
-
-        <li class="whs-pillar" role="listitem">
-          <div class="whs-pillar__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <polyline points="9 12 11 14 15 10"/>
-            </svg>
-          </div>
-          <div class="whs-pillar__text">
-            <span class="whs-pillar__name">Safety & Compliance</span>
-            <span class="whs-pillar__desc">FMCSA and Canadian CVOR-certified with ELD tracking.</span>
-          </div>
-          <span class="whs-pillar__arrow" aria-hidden="true">→</span>
-        </li>
-
-      </ul>
-
-    </div><!-- /whs-left -->
-
-    <!-- RIGHT: card stack -->
-    <div class="whs-right" aria-label="Services showcase">
-
-      <!-- Primary card: featured service visual -->
-      <div class="whs-card whs-card--primary">
-        <div class="whs-card__img-wrap">
-          <img
-            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&q=85&auto=format&fit=crop"
-            alt="Western Hawk freight operations — warehouse logistics"
-            class="whs-card__img"
-            loading="lazy"
-            decoding="async"
-          />
-          <div class="whs-card__overlay" aria-hidden="true"></div>
-          <div class="whs-card__badge" aria-hidden="true">
-            <svg viewBox="0 0 50 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M25 2 C20 10 10 13 2 11 C10 14 18 20 20 25 C18 22 15 25 12 30 C16 26 20 27 25 32 C30 27 34 26 38 30 C35 25 32 22 30 25 C32 20 40 14 48 11 C40 13 30 10 25 2Z" fill="#C9A84C"/>
-            </svg>
-          </div>
-          <!-- Service tag overlay -->
-          <div class="whs-card__tag" aria-hidden="true">Featured Service</div>
-        </div>
-        <div class="whs-card__footer">
-          <span>Over-the-Road Freight</span>
-          <span>Nationwide Coverage</span>
-        </div>
-      </div>
-
-      <!-- Secondary card: service stats / proof -->
-      <div class="whs-card whs-card--secondary">
-        <div class="whs-card__proof">
-          <div class="whs-proof__hawk" aria-hidden="true">
-            <svg viewBox="0 0 50 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M25 2 C20 10 10 13 2 11 C10 14 18 20 20 25 C18 22 15 25 12 30 C16 26 20 27 25 32 C30 27 34 26 38 30 C35 25 32 22 30 25 C32 20 40 14 48 11 C40 13 30 10 25 2Z" fill="#C9A84C"/>
-            </svg>
-          </div>
-
-          <div class="whs-proof__stat">
-            <p class="whs-proof__value" data-target="10" data-suffix="+">0+</p>
-            <p class="whs-proof__label">Years of Experience</p>
-          </div>
-
-          <div class="whs-proof__rule" aria-hidden="true"></div>
-
-          <p class="whs-proof__text">
-            From daily LTL runs to cross-border truckloads —
-            we deliver with precision and pride.
-            <em class="whs-proof__em">One fleet.<br>Every mile reliable.</em>
-          </p>
-        </div>
-      </div>
-
-    </div><!-- /whs-right -->
-  </div><!-- /whs-inner -->
-</section>
-
-    <!-- ================================================================
-         SECTION 3 
-    ================================================================= -->
     <!-- ============================================================
-  § 3  SERVICES — Western Hawk
+  OUR PROCESS — Western Hawk Logistics
   ============================================================ -->
 <section
-  id="section-services"
+  id="section-process"
   class="panel"
-  data-section="services"
+  data-section="process"
   data-smooth="true"
-  aria-label="Western Hawk Services"
-  data-bg-landscape="images/ce988fdc-5786-4878-b055-ce85b15ba2f7.png"
-  data-bg-portrait="images/60870532-0cd2-43f2-9692-03c4cbd3c42b.png"
+  aria-label="Our Process — Western Hawk"
+  data-bg-landscape="images/process_section.png"
+  data-bg-portrait="images/phone.png"
+
+
 >
-  <!--
-    .section-content IS the inner-scroll target.
-    The snap engine checks its scrollHeight vs clientHeight,
-    watches its scrollTop, and resets it to 0 on panel entry.
-    DO NOT rename this class.
-  -->
-  <div class="section-content ab-content">
 
-    <!-- Vertical route line (animated, CSS-driven by JS class toggle) -->
-    <div class="ab-route-line" aria-hidden="true"></div>
+  <!-- Atmospheric layers -->
+  <div class="whpr-grain" aria-hidden="true"></div>
+  <div class="whpr-orb whpr-orb--1" aria-hidden="true"></div>
+  <div class="whpr-orb whpr-orb--2" aria-hidden="true"></div>
+  <div class="whpr-vignette" aria-hidden="true"></div>
+  <div class="whpr-corner whpr-corner--tl" aria-hidden="true"></div>
+  <div class="whpr-corner whpr-corner--br" aria-hidden="true"></div>
+  <div class="whpr-gold-bar" aria-hidden="true"></div>
 
-    <!-- ── Section header ── -->
-    <header class="ab-header">
-      <div class="ab-header__eyebrow">
-        <span class="ab-header__eyebrow-line" aria-hidden="true"></span>
-        <span class="ab-header__eyebrow-text">Our Services</span>
+  <!-- ═══════════════ CONTENT ═══════════════ -->
+  <div class="section-content whpr-wrap">
+
+    <!-- HEADER -->
+    <div class="whpr-header">
+      <div class="whpr-eyebrow">
+        <span class="whpr-eyebrow__dot"></span>
+        How We Work
+        <span class="whpr-eyebrow__dot"></span>
       </div>
-      <h2 class="ab-header__title">Precision<br>in every mile.</h2>
-      <p class="ab-header__sub">
-        A legacy of moving what matters — with exactness,<br class="ab-br-desktop">
-        safety, and uncompromising care.
+      <h2 class="whpr-title">
+        From <em>Request</em> to Delivery
+      </h2>
+      <p class="whpr-sub">
+        Six steps. Zero confusion. Here's exactly how your freight moves through our system.
       </p>
-    </header>
-
-    <!-- ── Cards ── LEFT = slides from left · RIGHT = slides from right -->
-    <div class="ab-cards" role="list">
-
-      <!-- 1 ── LARGE LEFT -->
-      <article class="ab-card ab-card--large ab-card--left" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">24 / 7 Operations</span>
-          <h3 class="ab-card__title">Global fleet, local pulse</h3>
-          <p class="ab-card__desc">1,200+ heavy-duty trucks spanning 37 countries. We deliver where others don't.</p>
-        </div>
-      </article>
-
-      <!-- 2 ── SMALL RIGHT -->
-      <article class="ab-card ab-card--small ab-card--right" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=700&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">99.7% On-Time</span>
-          <h3 class="ab-card__title">Real-time visibility</h3>
-          <p class="ab-card__desc">Every shipment tracked, every route optimised. You see what we see.</p>
-        </div>
-      </article>
-
-      <!-- 3 ── LARGE LEFT -->
-      <article class="ab-card ab-card--large ab-card--left" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1542621334-a254cf47733d?w=900&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">6 Continents</span>
-          <h3 class="ab-card__title">Warehousing &amp; distribution</h3>
-          <p class="ab-card__desc">3.2 million sq.ft. climate-controlled space at key logistical hubs worldwide.</p>
-        </div>
-      </article>
-
-      <!-- 4 ── MEDIUM RIGHT -->
-      <article class="ab-card ab-card--medium ab-card--right" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=800&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">30% Less CO₂</span>
-          <h3 class="ab-card__title">Rail &amp; intermodal</h3>
-          <p class="ab-card__desc">Integrated rail-road solutions that cut carbon footprint without cutting speed.</p>
-        </div>
-      </article>
-
-      <!-- 5 ── LARGE LEFT -->
-      <article class="ab-card ab-card--large ab-card--left" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">ISO 45001 Certified</span>
-          <h3 class="ab-card__title">Safety first, always</h3>
-          <p class="ab-card__desc">Every driver trained, every vehicle inspected. Incident rate 82% below industry average.</p>
-        </div>
-      </article>
-
-      <!-- 6 ── SMALL RIGHT -->
-      <article class="ab-card ab-card--small ab-card--right" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=700&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">40+ Border Points</span>
-          <h3 class="ab-card__title">Cross-border expertise</h3>
-          <p class="ab-card__desc">Customs clearance, regulatory compliance, and seamless border crossings.</p>
-        </div>
-      </article>
-
-      <!-- 7 ── LARGE LEFT -->
-      <article class="ab-card ab-card--large ab-card--left" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=900&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">-20°C to +25°C</span>
-          <h3 class="ab-card__title">Cold chain logistics</h3>
-          <p class="ab-card__desc">Temperature-controlled transport for pharmaceuticals, fresh produce, and sensitive goods.</p>
-        </div>
-      </article>
-
-      <!-- 8 ── MEDIUM RIGHT -->
-      <article class="ab-card ab-card--medium ab-card--right" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?w=800&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">24hr Express Available</span>
-          <h3 class="ab-card__title">Express &amp; time-critical</h3>
-          <p class="ab-card__desc">Dedicated fleet for urgent shipments with guaranteed delivery windows.</p>
-        </div>
-      </article>
-
-      <!-- 9 ── LARGE LEFT -->
-      <article class="ab-card ab-card--large ab-card--left" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=900&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">Net Zero 2035</span>
-          <h3 class="ab-card__title">Sustainability commitment</h3>
-          <p class="ab-card__desc">Electric fleet integration, route optimisation, and carbon offset programmes.</p>
-        </div>
-      </article>
-
-      <!-- 10 ── SMALL RIGHT -->
-      <article class="ab-card ab-card--small ab-card--right" role="listitem">
-        <div class="ab-card__img" style="background-image:url('https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=700&q=85')"></div>
-        <div class="ab-card__shade"></div>
-        <div class="ab-card__body">
-          <span class="ab-card__meta">200+ Partners</span>
-          <h3 class="ab-card__title">Global partnerships</h3>
-          <p class="ab-card__desc">Strategic alliances with leading carriers to extend our reach and capabilities.</p>
-        </div>
-      </article>
-
-    </div><!-- /ab-cards -->
-
-    <!-- Stats footer -->
-    <div class="ab-stats" aria-label="Key statistics">
-      <div class="ab-stats__item">
-        <span class="ab-stats__num">15k+</span>
-        <span class="ab-stats__lbl">Shipments / Month</span>
-      </div>
-      <div class="ab-stats__sep" aria-hidden="true"></div>
-      <div class="ab-stats__item">
-        <span class="ab-stats__num">99.7%</span>
-        <span class="ab-stats__lbl">Delivery Precision</span>
-      </div>
-      <div class="ab-stats__sep" aria-hidden="true"></div>
-      <div class="ab-stats__item">
-        <span class="ab-stats__num">37</span>
-        <span class="ab-stats__lbl">Countries Served</span>
-      </div>
     </div>
 
-  </div><!-- /section-content -->
-</section>
-<!-- ════════ END § 3 SERVICES ════════ -->
+    <!-- ═══════════════ PROCESS FLOW ═══════════════ -->
+    <div class="whpr-flow">
 
-    <!-- ================================================================
-         SECTION 4 
-    ================================================================= -->
-   <!-- ============================================================
-  § 4  REVIEWS — Premium 3D Carousel
-  ============================================================ -->
-<section
-  class="panel wh-reviews"
-  id="section-reviews"
-  data-section="reviews"
-  aria-label="Client Reviews"
-  data-bg-landscape="images/reviews-bg.jpg"
-  data-bg-portrait="images/reviews-bg-mobile.jpg"
->
+      <!-- Connecting line (desktop) -->
+      <div class="whpr-line" aria-hidden="true"></div>
 
-  <!-- Atmospheric overlays -->
-  <div class="whr-grain" aria-hidden="true"></div>
-  <div class="whr-orb whr-orb--1" aria-hidden="true"></div>
-  <div class="whr-orb whr-orb--2" aria-hidden="true"></div>
-
-  <!-- Corner brackets matching hero language -->
-  <div class="whr-corner whr-corner--tl" aria-hidden="true"></div>
-  <div class="whr-corner whr-corner--br" aria-hidden="true"></div>
-
-  <!-- Gold bar at bottom matching hero -->
-  <div class="whr-gold-bar" aria-hidden="true"></div>
-
-  <div class="section-content whr-wrap">
-
-    <!-- Header -->
-    <header class="whr-header">
-      <div class="whr-eyebrow">
-        <span class="whr-eyebrow__dot" aria-hidden="true"></span>
-        <span class="whr-eyebrow__text">Client Testimonials</span>
-        <span class="whr-eyebrow__dot" aria-hidden="true"></span>
+      <!-- STEP 1 -->
+      <div class="whpr-step whpr-step--left">
+        <div class="whpr-step__number">01</div>
+        <div class="whpr-step__card">
+          <div class="whpr-step__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M3 7L12 13L21 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M8 16L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="whpr-step__body">
+            <h3>Submit Your Request</h3>
+            <p>Fill the booking form or WhatsApp us. Tell us what, where, and when — we take it from there.</p>
+          </div>
+        </div>
       </div>
-      <h2 class="whr-title">
-        Trusted by <em>Industry Leaders</em>
-      </h2>
-      <p class="whr-subtitle">Real words from the companies that move with us.</p>
-    </header>
 
-    <!-- Carousel -->
-    <div class="whr-scene" id="whr-scene" aria-live="polite" aria-label="Testimonials carousel">
-
-      <!-- Arrow buttons -->
-      <button class="whr-arrow whr-arrow--prev" id="whr-prev" aria-label="Previous testimonial">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button class="whr-arrow whr-arrow--next" id="whr-next" aria-label="Next testimonial">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M6 3L11 8L6 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-
-      <!-- Cards track -->
-      <div class="whr-track" id="whr-track">
-
-        <!-- Card 1 -->
-        <article class="whr-card" data-index="0" aria-label="Testimonial 1 of 5">
-          <div class="whr-card__shell">
-            <div class="whr-card__bloom" aria-hidden="true"></div>
-            <div class="whr-card__head">
-              <div class="whr-stars" aria-label="5 stars">
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span>
-              </div>
-              <span class="whr-card__date">Mar 2026</span>
-            </div>
-            <blockquote class="whr-card__quote">
-              <span class="whr-card__qmark" aria-hidden="true">"</span>
-              Western Hawk handled our cross-border shipment with absolute precision. Real-time tracking and communication were outstanding. We've found our long-term logistics partner.
-            </blockquote>
-            <footer class="whr-card__author">
-              <div class="whr-avatar" style="--av: url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&q=80');" aria-hidden="true"></div>
-              <div class="whr-card__info">
-                <span class="whr-card__name">James Mitchell</span>
-                <span class="whr-card__role">Operations Director · Mitchell Construction</span>
-              </div>
-            </footer>
+      <!-- STEP 2 -->
+      <div class="whpr-step whpr-step--right">
+        <div class="whpr-step__number">02</div>
+        <div class="whpr-step__card">
+          <div class="whpr-step__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 8V12L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </div>
-        </article>
-
-        <!-- Card 2 -->
-        <article class="whr-card" data-index="1" aria-label="Testimonial 2 of 5">
-          <div class="whr-card__shell">
-            <div class="whr-card__bloom" aria-hidden="true"></div>
-            <div class="whr-card__head">
-              <div class="whr-stars" aria-label="5 stars">
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span>
-              </div>
-              <span class="whr-card__date">Feb 2026</span>
-            </div>
-            <blockquote class="whr-card__quote">
-              <span class="whr-card__qmark" aria-hidden="true">"</span>
-              Cold-chain logistics for our pharmaceutical products are flawless. Temperature logs are precise, deliveries always on time. A carrier you can genuinely depend on.
-            </blockquote>
-            <footer class="whr-card__author">
-              <div class="whr-avatar" style="--av: url('https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&q=80');" aria-hidden="true"></div>
-              <div class="whr-card__info">
-                <span class="whr-card__name">Dr. Sarah Chen</span>
-                <span class="whr-card__role">Supply Chain Lead · Medica Inc.</span>
-              </div>
-            </footer>
+          <div class="whpr-step__body">
+            <h3>Quote &amp; Confirmation</h3>
+            <p>You get a transparent quote within minutes. Approve it, and your shipment is locked into our schedule.</p>
           </div>
-        </article>
-
-        <!-- Card 3 -->
-        <article class="whr-card" data-index="2" aria-label="Testimonial 3 of 5">
-          <div class="whr-card__shell">
-            <div class="whr-card__bloom" aria-hidden="true"></div>
-            <div class="whr-card__head">
-              <div class="whr-stars" aria-label="5 stars">
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span>
-              </div>
-              <span class="whr-card__date">Jan 2026</span>
-            </div>
-            <blockquote class="whr-card__quote">
-              <span class="whr-card__qmark" aria-hidden="true">"</span>
-              From warehousing to last-mile delivery, Western Hawk delivers excellence at every step. Responsive, professional, and genuinely invested in our freight.
-            </blockquote>
-            <footer class="whr-card__author">
-              <div class="whr-avatar" style="--av: url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&q=80');" aria-hidden="true"></div>
-              <div class="whr-card__info">
-                <span class="whr-card__name">Michael Torres</span>
-                <span class="whr-card__role">Logistics Manager · Torres Industries</span>
-              </div>
-            </footer>
-          </div>
-        </article>
-
-        <!-- Card 4 -->
-        <article class="whr-card" data-index="3" aria-label="Testimonial 4 of 5">
-          <div class="whr-card__shell">
-            <div class="whr-card__bloom" aria-hidden="true"></div>
-            <div class="whr-card__head">
-              <div class="whr-stars" aria-label="5 stars">
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span>
-              </div>
-              <span class="whr-card__date">Dec 2025</span>
-            </div>
-            <blockquote class="whr-card__quote">
-              <span class="whr-card__qmark" aria-hidden="true">"</span>
-              Western Hawk's cross-border expertise saved us thousands in customs delays. The fastest and most reliable heavy carrier we've worked with — by a significant margin.
-            </blockquote>
-            <footer class="whr-card__author">
-              <div class="whr-avatar" style="--av: url('https://images.unsplash.com/photo-1494790100977-89b0db5e05e3?w=80&q=80');" aria-hidden="true"></div>
-              <div class="whr-card__info">
-                <span class="whr-card__name">Rachel Kim</span>
-                <span class="whr-card__role">Import Manager · Global Solutions</span>
-              </div>
-            </footer>
-          </div>
-        </article>
-
-        <!-- Card 5 -->
-        <article class="whr-card" data-index="4" aria-label="Testimonial 5 of 5">
-          <div class="whr-card__shell">
-            <div class="whr-card__bloom" aria-hidden="true"></div>
-            <div class="whr-card__head">
-              <div class="whr-stars" aria-label="5 stars">
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span><span aria-hidden="true">✦</span>
-                <span aria-hidden="true">✦</span>
-              </div>
-              <span class="whr-card__date">Nov 2025</span>
-            </div>
-            <blockquote class="whr-card__quote">
-              <span class="whr-card__qmark" aria-hidden="true">"</span>
-              We switched to Western Hawk two years ago and haven't looked back. Fleet is modern, drivers are professional, and safety is never compromised for speed.
-            </blockquote>
-            <footer class="whr-card__author">
-              <div class="whr-avatar" style="--av: url('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&q=80');" aria-hidden="true"></div>
-              <div class="whr-card__info">
-                <span class="whr-card__name">David Williams</span>
-                <span class="whr-card__role">Chief Executive · Williams Logistics</span>
-              </div>
-            </footer>
-          </div>
-        </article>
-
-      </div><!-- /.whr-track -->
-    </div><!-- /.whr-scene -->
-
-    <!-- Bottom nav -->
-    <div class="whr-nav">
-      <span class="whr-counter">
-        <span class="whr-counter__n" id="whr-current">01</span>
-        <span class="whr-counter__sep" aria-hidden="true">/</span>
-        <span class="whr-counter__t">05</span>
-      </span>
-      <div class="whr-dots" id="whr-dots" role="tablist" aria-label="Navigate testimonials">
-        <button class="whr-dot" data-index="0" role="tab" aria-selected="true"  aria-label="Testimonial 1"></button>
-        <button class="whr-dot" data-index="1" role="tab" aria-selected="false" aria-label="Testimonial 2"></button>
-        <button class="whr-dot" data-index="2" role="tab" aria-selected="false" aria-label="Testimonial 3"></button>
-        <button class="whr-dot" data-index="3" role="tab" aria-selected="false" aria-label="Testimonial 4"></button>
-        <button class="whr-dot" data-index="4" role="tab" aria-selected="false" aria-label="Testimonial 5"></button>
+        </div>
       </div>
-      <div class="whr-bar" aria-hidden="true">
-        <div class="whr-bar__fill" id="whr-bar-fill"></div>
-      </div>
-    </div>
 
-  </div><!-- /.whr-wrap -->
-</section>
-
-    <!-- ================================================================
-         SECTION 5 
-    ================================================================= -->
-    <!-- ============================================================
-  § 5  AREA COVERAGE — Western Hawk Freight Network
-  ============================================================ -->
-<section
-  class="panel wha-coverage"
-  id="section-coverage"
-  data-section="coverage"
-  data-smooth="true"
-  aria-label="Area Coverage — Western Hawk Freight Network"
-  data-bg-landscape="images/coverage-bg.jpg"
-  data-bg-portrait="images/coverage-bg-mobile.jpg"
->
-
-  <!-- Section dark bg -->
-  <div class="wha-section-bg" aria-hidden="true"></div>
-
-  <!-- Atmospheric orbs -->
-  <div class="wha-orb wha-orb--1" aria-hidden="true"></div>
-  <div class="wha-orb wha-orb--2" aria-hidden="true"></div>
-
-  <!-- Corner markers -->
-  <div class="wha-corner wha-corner--tl" aria-hidden="true"></div>
-  <div class="wha-corner wha-corner--br" aria-hidden="true"></div>
-
-  <!-- Gold bar at bottom -->
-  <div class="wha-gold-bar" aria-hidden="true"></div>
-
-  <!-- ═══════════════ SCROLLABLE CONTENT ═══════════════ -->
-  <div class="section-content wha-wrap">
-
-    <!-- ═══════════════ HEADER ═══════════════ -->
-    <header class="wha-header">
-      <div class="wha-eyebrow">
-        <span class="wha-eyebrow__dot" aria-hidden="true"></span>
-        <span class="wha-eyebrow__text">National Freight Network</span>
-        <span class="wha-eyebrow__dot" aria-hidden="true"></span>
-      </div>
-      <h2 class="wha-title">
-        Coast-to-Coast <em>Coverage</em>
-      </h2>
-      <p class="wha-subtitle">10 provinces, 27 active hubs, 48 US states — one seamless network.</p>
-    </header>
-
-    <!-- ═══════════════ MAP CARD ═══════════════ -->
-    <div class="wha-map-card">
-      <div class="wha-map-card__inner">
-        
-        <!-- Map image -->
-        <div class="wha-map-card__img"
-             style="background-image: url('images/map.png');"
-             aria-hidden="true">
-        </div>
-
-        <!-- Scrim overlay -->
-        <div class="wha-map-card__scrim" aria-hidden="true"></div>
-
-        <!-- Card chrome corners -->
-        <div class="wha-map-card__corner wha-map-card__corner--tl" aria-hidden="true"></div>
-        <div class="wha-map-card__corner wha-map-card__corner--tr" aria-hidden="true"></div>
-        <div class="wha-map-card__corner wha-map-card__corner--bl" aria-hidden="true"></div>
-        <div class="wha-map-card__corner wha-map-card__corner--br" aria-hidden="true"></div>
-
-        <!-- Badge overlay -->
-        <div class="wha-map-card__badge">
-          <span class="wha-map-card__badge-num">27</span>
-          <span class="wha-map-card__badge-lbl">Active Hubs</span>
-        </div>
-
-        <!-- Legend inside card -->
-        <div class="wha-map-card__legend">
-          <div class="wha-map-card__legend-item">
-            <span class="wha-map-card__legend-dot wha-map-card__legend-dot--main"></span>
-            <span>Trans-Canada Main</span>
+      <!-- STEP 3 -->
+      <div class="whpr-step whpr-step--left">
+        <div class="whpr-step__number">03</div>
+        <div class="whpr-step__card">
+          <div class="whpr-step__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="1" y="3" width="15" height="13" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M16 8h4l3 5v3h-7V8z" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
           </div>
-          <div class="wha-map-card__legend-item">
-            <span class="wha-map-card__legend-dot wha-map-card__legend-dot--spur"></span>
-            <span>Regional Spurs</span>
-          </div>
-          <div class="wha-map-card__legend-item">
-            <span class="wha-map-card__legend-dot wha-map-card__legend-dot--border"></span>
-            <span>US Crossings</span>
+          <div class="whpr-step__body">
+            <h3>Pickup &amp; Loading</h3>
+            <p>Our truck arrives at your location. Professional loading, secure strapping, paperwork done right.</p>
           </div>
         </div>
+      </div>
 
-      </div>
-    </div>
-
-    <!-- ═══════════════ STAT STRIP ═══════════════ -->
-    <div class="wha-stats" aria-label="Coverage statistics">
-      <div class="wha-stat">
-        <span class="wha-stat__num">10</span>
-        <span class="wha-stat__lbl">Provinces</span>
-      </div>
-      <span class="wha-stat__sep" aria-hidden="true"></span>
-      <div class="wha-stat">
-        <span class="wha-stat__num">27</span>
-        <span class="wha-stat__lbl">Active Hubs</span>
-      </div>
-      <span class="wha-stat__sep" aria-hidden="true"></span>
-      <div class="wha-stat">
-        <span class="wha-stat__num">7,800<span class="wha-stat__suffix">km</span></span>
-        <span class="wha-stat__lbl">Longest Route</span>
-      </div>
-      <span class="wha-stat__sep" aria-hidden="true"></span>
-      <div class="wha-stat">
-        <span class="wha-stat__num">48</span>
-        <span class="wha-stat__lbl">US States</span>
-      </div>
-    </div>
-
-    <!-- ═══════════════ ROUTE INFO CARDS ═══════════════ -->
-    <div class="wha-routes">
-
-      <!-- Card 1: Trans-Canada Main -->
-      <article class="wha-route-card">
-        <div class="wha-route-card__icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M2 12H22M18 6L22 12L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="6" cy="12" r="2" fill="currentColor" opacity="0.6"/>
-            <circle cx="14" cy="12" r="2" fill="currentColor" opacity="0.6"/>
-          </svg>
-        </div>
-        <div class="wha-route-card__body">
-          <h3 class="wha-route-card__title">Trans-Canada Main Corridor</h3>
-          <p class="wha-route-card__desc">Vancouver to Halifax — our flagship lane running 7,800 km across all ten provinces with daily departures and guaranteed 99.7% on-time delivery.</p>
-          <div class="wha-route-card__stops">
-            <span>Vancouver</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Calgary</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Winnipeg</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Toronto</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Halifax</span>
+      <!-- STEP 4 -->
+      <div class="whpr-step whpr-step--right">
+        <div class="whpr-step__number">04</div>
+        <div class="whpr-step__card">
+          <div class="whpr-step__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.6"/>
+              <path d="M12 3V6M12 18V21M3 12H6M18 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="whpr-step__body">
+            <h3>Live Tracking</h3>
+            <p>ELD-based GPS tracking gives you real-time location, speed, and ETA — 24/7 on any device.</p>
           </div>
         </div>
-      </article>
+      </div>
 
-      <!-- Card 2: Western Corridor -->
-      <article class="wha-route-card">
-        <div class="wha-route-card__icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M2 12H22M18 6L22 12L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="6" cy="12" r="2" fill="currentColor" opacity="0.6"/>
-          </svg>
-        </div>
-        <div class="wha-route-card__body">
-          <h3 class="wha-route-card__title">Western Prairie Express</h3>
-          <p class="wha-route-card__desc">Calgary–Edmonton–Saskatoon–Regina loop connecting Alberta and Saskatchewan with dedicated flatbed, reefer, and dry van capacity.</p>
-          <div class="wha-route-card__stops">
-            <span>Calgary</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Edmonton</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Saskatoon</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Regina</span>
+      <!-- STEP 5 -->
+      <div class="whpr-step whpr-step--left">
+        <div class="whpr-step__number">05</div>
+        <div class="whpr-step__card">
+          <div class="whpr-step__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5"/>
+              <polyline points="9 12 11 14 15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="whpr-step__body">
+            <h3>Border &amp; Compliance</h3>
+            <p>Customs pre-cleared. FAST-certified drivers. Every checkpoint, every regulation — handled.</p>
           </div>
         </div>
-      </article>
+      </div>
 
-      <!-- Card 3: Central Corridor -->
-      <article class="wha-route-card">
-        <div class="wha-route-card__icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M2 12H22M18 6L22 12L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="10" cy="12" r="2" fill="currentColor" opacity="0.6"/>
-            <circle cx="18" cy="12" r="2" fill="currentColor" opacity="0.6"/>
-          </svg>
-        </div>
-        <div class="wha-route-card__body">
-          <h3 class="wha-route-card__title">Great Lakes–Québec Corridor</h3>
-          <p class="wha-route-card__desc">Toronto–Ottawa–Montréal–Québec City — the busiest freight lane in Canada with same-day and overnight express options.</p>
-          <div class="wha-route-card__stops">
-            <span>Toronto</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Ottawa</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Montréal</span>
-            <span class="wha-route-card__stops-arrow">→</span>
-            <span>Québec City</span>
+      <!-- STEP 6 -->
+      <div class="whpr-step whpr-step--right">
+        <div class="whpr-step__number">06</div>
+        <div class="whpr-step__card">
+          <div class="whpr-step__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" stroke="currentColor" stroke-width="1.5"/>
+              <polyline points="9 10 11 12 14 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="whpr-step__body">
+            <h3>Delivery &amp; Confirmation</h3>
+            <p>On-time arrival. Proof of delivery captured. You're notified the moment your freight reaches its destination.</p>
           </div>
         </div>
-      </article>
-
-      <!-- Card 4: Cross-Border -->
-      <article class="wha-route-card">
-        <div class="wha-route-card__icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 2V22M6 18L12 22L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 8L6 4H18L22 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="wha-route-card__body">
-          <h3 class="wha-route-card__title">Cross-Border Network</h3>
-          <p class="wha-route-card__desc">48 US states via FAST-certified lanes. Customs pre-cleared, FMCSA compliant, with border-crossing specialists at every checkpoint.</p>
-          <div class="wha-route-card__stops">
-            <span>Canada</span>
-            <span class="wha-route-card__stops-arrow">↔</span>
-            <span>USA</span>
-          </div>
-        </div>
-      </article>
+      </div>
 
     </div>
 
     <!-- ═══════════════ BOTTOM CTA ═══════════════ -->
-    <div class="wha-cta">
-      <p class="wha-cta__text">Need a lane we haven't listed? We build custom routes.</p>
-      <a href="contact.html" class="wha-cta__btn">
-        <span>Request a Route</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <div class="whpr-cta">
+      <p>Ready to start your first shipment?</p>
+      <a href="#section-booking" class="whpr-cta-btn">
+        <span>Book Now</span>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M1 7H13M8 2L13 7L8 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </a>
@@ -1031,204 +390,435 @@
   </div>
 
 </section>
-
-    <!-- ================================================================
-         SECTION 6 
-    ================================================================= -->
-    <!-- ============================================================
-  § 6  FAQ — Frequently Asked Questions
+<!-- ============================================================
+  BOOK A SHIPMENT — Western Hawk Logistics
+  Formspree endpoint: https://formspree.io/f/xeebraeo
   ============================================================ -->
 <section
-  class="panel wh-faq"
-  id="section-faq"
-  data-section="faq"
+  id="section-booking"
+  class="panel"
+  data-section="booking"
   data-smooth="true"
-  aria-label="Frequently Asked Questions"
-  data-bg-landscape="images/faq_section.png"
-  data-bg-portrait="images/60870532-0cd2-43f2-9692-03c4cbd3c42b.png"
+  aria-label="Book a Shipment — Western Hawk"
+  data-bg-landscape="images/book_form.png"
+  data-bg-portrait="images/phone.png"
+  data-locked="false"
 >
 
-  <!-- Directional scrim — keeps the photo visible but text legible -->
-  <div class="whf-scrim" aria-hidden="true"></div>
-
   <!-- Atmospheric layers -->
-  <div class="whf-grain" aria-hidden="true"></div>
-  <div class="whf-orb whf-orb--1" aria-hidden="true"></div>
-  <div class="whf-orb whf-orb--2" aria-hidden="true"></div>
-  <div class="whf-rays" aria-hidden="true"></div>
+  <div class="whbk-grain" aria-hidden="true"></div>
+  <div class="whbk-orb whbk-orb--1" aria-hidden="true"></div>
+  <div class="whbk-orb whbk-orb--2" aria-hidden="true"></div>
+  <div class="whbk-vignette" aria-hidden="true"></div>
+  <div class="whbk-corner whbk-corner--tl" aria-hidden="true"></div>
+  <div class="whbk-corner whbk-corner--br" aria-hidden="true"></div>
+  <div class="whbk-gold-bar" aria-hidden="true"></div>
 
-  <!-- Corner brackets matching hero / reviews -->
-  <div class="whf-corner whf-corner--tl" aria-hidden="true"></div>
-  <div class="whf-corner whf-corner--br" aria-hidden="true"></div>
+  <!-- LOCK INDICATOR -->
+  <div class="lock-indicator" style="display:none;">
+    👆 Swipe again to exit
+  </div>
 
-  <!-- Gold bar at bottom matching hero / reviews -->
-  <div class="whf-gold-bar" aria-hidden="true"></div>
+  <!-- ═══════════════ CONTENT ═══════════════ -->
+  <div class="section-content whbk-wrap">
 
-  <!--
-    .section-content IS the inner-scroll target.
-    The snap engine checks its scrollHeight vs clientHeight,
-    watches its scrollTop, and resets it to 0 on panel entry.
-    DO NOT rename this class.
-  -->
-  <div class="section-content whf-wrap">
-
-    <!-- Header -->
-    <header class="whf-header">
-      <div class="whf-eyebrow">
-        <span class="whf-eyebrow__dot" aria-hidden="true"></span>
-        <span class="whf-eyebrow__text">Frequently Asked Questions</span>
-        <span class="whf-eyebrow__dot" aria-hidden="true"></span>
+    <!-- HEADER -->
+    <div class="whbk-header">
+      <div class="whbk-eyebrow">
+        <span class="whbk-eyebrow__dot"></span>
+        Book a Shipment
+        <span class="whbk-eyebrow__dot"></span>
       </div>
-      <h2 class="whf-title">
-        Answers, <em>before the road</em>
+      <h2 class="whbk-title">
+        Get Your Freight <em>Moving</em>
       </h2>
-      <p class="whf-subtitle">Everything shippers ask before trusting us with their freight.</p>
-    </header>
-
-    <!-- Accordion -->
-    <div class="whf-list" id="whf-list" role="list">
-
-      <!-- Q1 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-1">
-          <span class="whf-q__index">01</span>
-          <span class="whf-q__text">Which provinces and regions do you service?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-1" role="region">
-          <div class="whf-a__inner">
-            <p>We run coast-to-coast across all ten provinces, with dedicated lanes connecting Vancouver, Calgary, Winnipeg, Toronto, Montréal and Halifax. Cross-border capacity reaches 48 US states, so a single booking can move freight from a BC warehouse straight through to a customer in Texas without a carrier handoff.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q2 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-2">
-          <span class="whf-q__index">02</span>
-          <span class="whf-q__text">Do you handle cross-border shipments into the US?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-2" role="region">
-          <div class="whf-a__inner">
-            <p>Yes. Our fleet is FMCSA and CVOR-certified for cross-border movement, with FAST-approved drivers and brokers handling customs paperwork ahead of arrival. Most northbound and southbound crossings clear without delay, and we coordinate documentation so your freight isn't held at the border.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q3 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-3">
-          <span class="whf-q__index">03</span>
-          <span class="whf-q__text">What types of freight and trailers do you operate?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-3" role="region">
-          <div class="whf-a__inner">
-            <p>Our fleet covers dry van, flatbed and temperature-controlled reefer trailers, supporting full truckload, LTL and time-critical express loads. Whether it's palletized goods, construction materials, or cold-chain product moving between -20°C and +25°C, there's equipment matched to the load.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q4 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-4">
-          <span class="whf-q__index">04</span>
-          <span class="whf-q__text">How do I track my shipment in real time?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-4" role="region">
-          <div class="whf-a__inner">
-            <p>Every truck runs on ELD-based GPS tracking, giving you live location, ETA and status updates from pickup to delivery. Dispatch shares a tracking link at booking, and our operations team is reachable 24/7 if you need a direct status check on a specific load.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q5 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-5">
-          <span class="whf-q__index">05</span>
-          <span class="whf-q__text">What is your average on-time delivery rate?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-5" role="region">
-          <div class="whf-a__inner">
-            <p>We close out at 99.7% on-time performance across the network, year over year. That comes from route optimisation, proactive dispatch and a maintenance program that keeps breakdown-related delays rare rather than routine.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q6 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-6">
-          <span class="whf-q__index">06</span>
-          <span class="whf-q__text">How quickly can a truck be dispatched for an urgent load?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-6" role="region">
-          <div class="whf-a__inner">
-            <p>For time-critical freight, we maintain a dedicated express fleet that can typically be dispatched same-day. Call or submit a booking request with your pickup window and we'll confirm equipment availability and a guaranteed delivery slot within the hour.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q7 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-7">
-          <span class="whf-q__index">07</span>
-          <span class="whf-q__text">Are your drivers and vehicles safety certified?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-7" role="region">
-          <div class="whf-a__inner">
-            <p>We're ISO 45001 certified with CVOR compliance across the fleet. Every driver completes ongoing safety training and every vehicle goes through scheduled inspection cycles — our incident rate sits 82% below the industry average as a result.</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Q8 -->
-      <article class="whf-item" role="listitem">
-        <span class="whf-item__sheen" aria-hidden="true"></span>
-        <div class="whf-item__clickable" tabindex="0" role="button" aria-expanded="false" aria-controls="whf-a-8">
-          <span class="whf-q__index">08</span>
-          <span class="whf-q__text">How do I get a freight quote or book a shipment?</span>
-          <span class="whf-close" aria-hidden="true"></span>
-        </div>
-        <div class="whf-a" id="whf-a-8" role="region">
-          <div class="whf-a__inner">
-            <p>Reach out through the contact form or call our dispatch line with pickup and delivery details, freight type, and weight. We'll respond with a quote and the earliest available pickup window — usually within the same business day.</p>
-          </div>
-        </div>
-      </article>
-
-    </div><!-- /whf-list -->
-
-    <!-- Bottom CTA strip -->
-    <div class="whf-cta">
-      <p class="whf-cta__text">Still have questions about your freight?</p>
-      <a href="contact.html" class="whf-cta__btn" role="button">
-        <span>Talk to Dispatch</span>
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M1 7H13M8 2L13 7L8 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
+      <p class="whbk-sub">
+        Fill the form below and we'll get back with a quote within minutes.
+      </p>
     </div>
 
-  </div><!-- /whf-wrap -->
+    <!-- ═══════════════ FORM CONTAINER ═══════════════ -->
+    <div class="whbk-form-container" id="whbk-form-container">
+
+      <!-- FORM -->
+      <form
+        class="whbk-form"
+        id="whbk-form"
+        action="https://formspree.io/f/xeebraeo"
+        method="POST"
+        autocomplete="off"
+      >
+
+        <!-- ══════ SECTION: CONTACT ══════ -->
+        <div class="whbk-section-label">Contact Details</div>
+        <div class="whbk-row">
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-company">Company Name</label>
+            <input type="text" id="whbk-company" name="company" class="whbk-input whbk-lock-input" placeholder="Your Company Ltd." required />
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-name">Contact Person</label>
+            <input type="text" id="whbk-name" name="name" class="whbk-input whbk-lock-input" placeholder="John Doe" required />
+          </div>
+        </div>
+
+        <div class="whbk-row">
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-email">Email Address</label>
+            <input type="email" id="whbk-email" name="email" class="whbk-input whbk-lock-input" placeholder="you@company.com" required />
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-phone">Phone Number</label>
+            <input type="tel" id="whbk-phone" name="phone" class="whbk-input whbk-lock-input" placeholder="9350598958" required />
+          </div>
+        </div>
+
+        <!-- ══════ SECTION: SHIPMENT ══════ -->
+        <div class="whbk-section-label">Shipment Details</div>
+        <div class="whbk-row">
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-service">Service Type</label>
+            <select id="whbk-service" name="service" class="whbk-input whbk-select whbk-lock-input" required>
+              <option value="" disabled selected>Select service...</option>
+              <option value="Full Truckload (FTL)">Full Truckload (FTL)</option>
+              <option value="Less Than Truckload (LTL)">Less Than Truckload (LTL)</option>
+              <option value="Cross-Border">Cross-Border</option>
+              <option value="Express / Time-Critical">Express / Time-Critical</option>
+              <option value="Cold Chain / Reefer">Cold Chain / Reefer</option>
+              <option value="Flatbed / Oversized">Flatbed / Oversized</option>
+              <option value="Intermodal">Intermodal (Rail + Road)</option>
+              <option value="Not Sure">Not Sure — Please Advise</option>
+            </select>
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-freight">Freight Type</label>
+            <select id="whbk-freight" name="freight_type" class="whbk-input whbk-select whbk-lock-input" required>
+              <option value="" disabled selected>Select freight...</option>
+              <option value="Palletized Goods">Palletized Goods</option>
+              <option value="Construction Materials">Construction Materials</option>
+              <option value="Machinery / Equipment">Machinery / Equipment</option>
+              <option value="Automotive Parts">Automotive Parts</option>
+              <option value="Food & Beverage">Food & Beverage</option>
+              <option value="Pharmaceuticals">Pharmaceuticals</option>
+              <option value="Retail / Consumer Goods">Retail / Consumer Goods</option>
+              <option value="Hazardous Materials">Hazardous Materials</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="whbk-row whbk-row--triple">
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-weight">Approx. Weight</label>
+            <input type="text" id="whbk-weight" name="weight" class="whbk-input whbk-lock-input" placeholder="e.g. 5,000 kg" />
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-pallets">No. of Pallets</label>
+            <input type="number" id="whbk-pallets" name="pallets" class="whbk-input whbk-lock-input" placeholder="e.g. 4" min="1" />
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-dimensions">Dimensions (L×W×H)</label>
+            <input type="text" id="whbk-dimensions" name="dimensions" class="whbk-input whbk-lock-input" placeholder="e.g. 48×40×60 in" />
+          </div>
+        </div>
+
+        <!-- ══════ SECTION: ROUTE ══════ -->
+        <div class="whbk-section-label">Route & Timing</div>
+        <div class="whbk-row">
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-pickup">Pickup Location</label>
+            <input type="text" id="whbk-pickup" name="pickup" class="whbk-input whbk-lock-input" placeholder="City, Province" required />
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-delivery">Delivery Location</label>
+            <input type="text" id="whbk-delivery" name="delivery" class="whbk-input whbk-lock-input" placeholder="City, Province" required />
+          </div>
+        </div>
+
+        <div class="whbk-row">
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-pickup-date">Preferred Pickup Date</label>
+            <input type="date" id="whbk-pickup-date" name="pickup_date" class="whbk-input whbk-lock-input" />
+          </div>
+          <div class="whbk-field">
+            <label class="whbk-label" for="whbk-urgency">Urgency</label>
+            <select id="whbk-urgency" name="urgency" class="whbk-input whbk-select whbk-lock-input">
+              <option value="Standard">Standard (3–7 days)</option>
+              <option value="Priority">Priority (2–3 days)</option>
+              <option value="Express">Express (24–48 hours)</option>
+              <option value="Same Day">Same Day</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ══════ SECTION: EXTRA ══════ -->
+        <div class="whbk-field whbk-field--full">
+          <label class="whbk-label" for="whbk-notes">Additional Notes (Optional)</label>
+          <textarea id="whbk-notes" name="notes" class="whbk-input whbk-textarea whbk-lock-input" placeholder="Special handling, access restrictions, reference numbers, or anything else we should know..." rows="3"></textarea>
+        </div>
+
+        <!-- ══════ SUBMIT ══════ -->
+        <div class="whbk-submit-wrap">
+          <button type="submit" class="whbk-submit" id="whbk-submit-btn">
+            <span class="whbk-submit__text">Submit Booking Request</span>
+            <span class="whbk-submit__loader" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <p class="whbk-note">
+          We'll review your request and respond within <strong>15 minutes</strong>.
+        </p>
+
+      </form>
+
+      <!-- ═══════════════ SUCCESS OVERLAY ═══════════════ -->
+      <div class="whbk-success" id="whbk-success" hidden>
+        <div class="whbk-success__icon" aria-hidden="true">✓</div>
+        <h3 class="whbk-success__title">Request Submitted!</h3>
+        <p class="whbk-success__text">
+          Thank you, <span class="whbk-success__name" id="whbk-success-name">there</span>!
+          Our dispatch team will contact you within 15 minutes to confirm your shipment details.
+        </p>
+        <button class="whbk-success__btn" id="whbk-success-btn">Submit Another Request</button>
+      </div>
+
+      <!-- ═══════════════ ERROR OVERLAY ═══════════════ -->
+      <div class="whbk-error" id="whbk-error" hidden>
+        <div class="whbk-error__icon" aria-hidden="true">✗</div>
+        <h3 class="whbk-error__title">Something Went Wrong</h3>
+        <p class="whbk-error__text" id="whbk-error-text">Please try again later.</p>
+        <button class="whbk-error__btn" id="whbk-error-btn">Try Again</button>
+      </div>
+
+    </div>
+
+  </div>
 
 </section>
+<!-- ============================================================
+  JOIN OUR TEAM — Career Application | Western Hawk
+  Formspree endpoint: https://formspree.io/f/xeebraeo
+  ============================================================ -->
+<section
+  id="section-careers"
+  class="panel"
+  data-section="careers"
+  data-smooth="true"
+  aria-label="Careers — Western Hawk"
+  data-bg-landscape="images/carrer_section1.png"
+  data-bg-portrait="images/phone.png"
+  data-locked="false"
+>
 
-    <!-- ================================================================
-         SECTION 7 
-    ================================================================= -->
-   
+  <!-- Atmospheric layers -->
+  <div class="whcr-grain" aria-hidden="true"></div>
+  <div class="whcr-orb whcr-orb--1" aria-hidden="true"></div>
+  <div class="whcr-orb whcr-orb--2" aria-hidden="true"></div>
+  <div class="whcr-vignette" aria-hidden="true"></div>
+  <div class="whcr-corner whcr-corner--tl" aria-hidden="true"></div>
+  <div class="whcr-corner whcr-corner--br" aria-hidden="true"></div>
+  <div class="whcr-gold-bar" aria-hidden="true"></div>
+
+  <!-- LOCK INDICATOR -->
+  <div class="lock-indicator" style="display:none;">
+    👆 Swipe again to exit
+  </div>
+
+  <!-- ═══════════════ CONTENT ═══════════════ -->
+  <div class="section-content whcr-wrap">
+
+    <!-- HEADER -->
+    <div class="whcr-header">
+      <div class="whcr-eyebrow">
+        <span class="whcr-eyebrow__dot"></span>
+        Join Our Fleet
+        <span class="whcr-eyebrow__dot"></span>
+      </div>
+      <h2 class="whcr-title">
+        Build Your <em>Career</em> With Us
+      </h2>
+      <p class="whcr-sub">
+        Drivers, dispatchers, mechanics, logistics pros — we're always looking for great people.
+        Competitive pay, full benefits, and a team that has your back.
+      </p>
+    </div>
+
+    <!-- ═══════════════ FORM CONTAINER ═══════════════ -->
+    <div class="whcr-form-container" id="whcr-form-container">
+
+      <!-- FORM -->
+      <form
+        class="whcr-form"
+        id="whcr-form"
+        action="https://formspree.io/f/xeebraeo"
+        method="POST"
+        autocomplete="off"
+      >
+
+        <!-- ══════ SECTION: PERSONAL ══════ -->
+        <div class="whcr-section-label">Personal Information</div>
+        <div class="whcr-row">
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-name">Full Name</label>
+            <input type="text" id="whcr-name" name="name" class="whcr-input whcr-lock-input" placeholder="John Doe" required />
+          </div>
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-email">Email Address</label>
+            <input type="email" id="whcr-email" name="email" class="whcr-input whcr-lock-input" placeholder="you@email.com" required />
+          </div>
+        </div>
+
+        <div class="whcr-row">
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-phone">Phone Number</label>
+            <input type="tel" id="whcr-phone" name="phone" class="whcr-input whcr-lock-input" placeholder="9350598958" required />
+          </div>
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-location">Current Location</label>
+            <input type="text" id="whcr-location" name="location" class="whcr-input whcr-lock-input" placeholder="City, Province" required />
+          </div>
+        </div>
+
+        <!-- ══════ SECTION: POSITION ══════ -->
+        <div class="whcr-section-label">Position Details</div>
+        <div class="whcr-row">
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-role">Role You're Applying For</label>
+            <select id="whcr-role" name="role" class="whcr-input whcr-select whcr-lock-input" required>
+              <option value="" disabled selected>Select role...</option>
+              <option value="Long-Haul Driver">Long-Haul Driver (Cross-Country)</option>
+              <option value="Regional Driver">Regional Driver</option>
+              <option value="Owner Operator">Owner Operator</option>
+              <option value="Dispatcher">Dispatcher / Fleet Coordinator</option>
+              <option value="Logistics Coordinator">Logistics Coordinator</option>
+              <option value="Diesel Mechanic">Diesel Mechanic / Technician</option>
+              <option value="Warehouse Operator">Warehouse Operator</option>
+              <option value="Safety & Compliance Officer">Safety & Compliance Officer</option>
+              <option value="Customer Service">Customer Service Representative</option>
+              <option value="Other">Other / General Application</option>
+            </select>
+          </div>
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-experience">Years of Experience</label>
+            <select id="whcr-experience" name="experience" class="whcr-input whcr-select whcr-lock-input" required>
+              <option value="" disabled selected>Select experience...</option>
+              <option value="0-1">Less than 1 year</option>
+              <option value="1-3">1–3 years</option>
+              <option value="3-5">3–5 years</option>
+              <option value="5-10">5–10 years</option>
+              <option value="10+">10+ years</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="whcr-row">
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-license">License Class</label>
+            <select id="whcr-license" name="license" class="whcr-input whcr-select whcr-lock-input">
+              <option value="" disabled selected>Select license...</option>
+              <option value="Class 1 / AZ">Class 1 / AZ (Full Commercial)</option>
+              <option value="Class 3">Class 3</option>
+              <option value="Class 5 / G">Class 5 / G (Standard)</option>
+              <option value="FAST Card Holder">FAST Card Holder</option>
+              <option value="Not Applicable">Not Applicable</option>
+            </select>
+          </div>
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-availability">Availability</label>
+            <select id="whcr-availability" name="availability" class="whcr-input whcr-select whcr-lock-input" required>
+              <option value="" disabled selected>Select availability...</option>
+              <option value="Immediate">Immediate Start</option>
+              <option value="2 Weeks">2 Weeks Notice</option>
+              <option value="1 Month">1 Month</option>
+              <option value="Flexible">Flexible / Discuss</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="whcr-field whcr-field--full">
+          <label class="whcr-label" for="whcr-cover">Cover Letter / Why You?</label>
+          <textarea id="whcr-cover" name="cover_letter" class="whcr-input whcr-textarea whcr-lock-input" placeholder="Tell us why you'd be a great fit — your experience, skills, and what drives you..." rows="3"></textarea>
+        </div>
+
+        <!-- ══════ SECTION: PREFERENCES ══════ -->
+        <div class="whcr-section-label">Preferences</div>
+        <div class="whcr-row whcr-row--triple">
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-route-pref">Route Preference</label>
+            <select id="whcr-route-pref" name="route_preference" class="whcr-input whcr-select whcr-lock-input">
+              <option value="" disabled selected>Select...</option>
+              <option value="Long-Haul">Long-Haul</option>
+              <option value="Regional">Regional</option>
+              <option value="Local">Local</option>
+              <option value="Cross-Border">Cross-Border</option>
+              <option value="Any">Any / Flexible</option>
+            </select>
+          </div>
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-shift">Shift Preference</label>
+            <select id="whcr-shift" name="shift" class="whcr-input whcr-select whcr-lock-input">
+              <option value="" disabled selected>Select...</option>
+              <option value="Day">Day Shift</option>
+              <option value="Night">Night Shift</option>
+              <option value="Rotating">Rotating</option>
+              <option value="Any">Any / Flexible</option>
+            </select>
+          </div>
+          <div class="whcr-field">
+            <label class="whcr-label" for="whcr-relocate">Willing to Relocate?</label>
+            <select id="whcr-relocate" name="relocate" class="whcr-input whcr-select whcr-lock-input">
+              <option value="" disabled selected>Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Maybe">Maybe / Discuss</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ══════ SECTION: REFERRAL ══════ -->
+        <div class="whcr-field whcr-field--full">
+          <label class="whcr-label" for="whcr-referral">How Did You Hear About Us?</label>
+          <input type="text" id="whcr-referral" name="referral" class="whcr-input whcr-lock-input" placeholder="e.g. Indeed, LinkedIn, Referral, Google..." />
+        </div>
+
+        <!-- ══════ SUBMIT ══════ -->
+        <div class="whcr-submit-wrap">
+          <button type="submit" class="whcr-submit" id="whcr-submit-btn">
+            <span class="whcr-submit__text">Submit Application</span>
+            <span class="whcr-submit__loader" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <p class="whcr-note">
+          We review every application personally. You'll hear back within <strong>2 business days</strong>.
+        </p>
+
+      </form>
+
+      <!-- ═══════════════ SUCCESS OVERLAY ═══════════════ -->
+      <div class="whcr-success" id="whcr-success" hidden>
+        <div class="whcr-success__icon" aria-hidden="true">✓</div>
+        <h3 class="whcr-success__title">Application Submitted!</h3>
+        <p class="whcr-success__text">
+          Thank you, <span class="whcr-success__name" id="whcr-success-name">there</span>!
+          Our HR team will review your application and contact you within 2-3 business days.
+        </p>
+        <button class="whcr-success__btn" id="whcr-success-btn">Submit Another Application</button>
+      </div>
+
+      <!-- ═══════════════ ERROR OVERLAY ═══════════════ -->
+      <div class="whcr-error" id="whcr-error" hidden>
+        <div class="whcr-error__icon" aria-hidden="true">✗</div>
+        <h3 class="whcr-error__title">Something Went Wrong</h3>
+        <p class="whcr-error__text" id="whcr-error-text">Please try again later.</p>
+        <button class="whcr-error__btn" id="whcr-error-btn">Try Again</button>
+      </div>
+
+    </div>
+
+  </div>
+
+</section> 
    <!-- ============================================================
   CTA + FOOTER SECTION — Full Screen CTA + Scrollable Footer
   Drop as the last .panel inside #scroll-container
@@ -1240,7 +830,8 @@
   data-smooth="true"
   aria-label="Footer"
   data-bg-landscape="images/footer.png"
-  data-bg-portrait="images/60870532-0cd2-43f2-9692-03c4cbd3c42b.png"
+  data-bg-portrait="images/phone.png"
+
 >
 
   <!-- ATMOSPHERIC LAYERS -->
@@ -1296,7 +887,7 @@
 
           <!-- Buttons -->
           <div class="whfoot-cta-buttons">
-            <a href="book.html#section-booking" class="whfoot-btn whfoot-btn--gold">
+            <a href="#section-booking" class="whfoot-btn whfoot-btn--gold">
               <span>Book a Shipment</span>
               <svg width="15" height="15" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M1 7H13M8 2L13 7L8 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1452,7 +1043,8 @@
 
 </section>
 
-    
+
+   
   </div>
 
   <!-- PC-only scroll progress dots -->
@@ -1463,6 +1055,6 @@
   <!-- Transition overlay -->
   <div id="transition-overlay"></div>
 
-  <script src="script.js"></script>
+  <script src="book.js"></script>
 </body>
 </html>

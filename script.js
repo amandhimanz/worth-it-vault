@@ -1530,7 +1530,6 @@ var DOT_LABELS = [
 
 // ── END SECTION-HERO ──
 
-
 // ── PASTE SECTION-ABOUT BELOW ──
 
 (function () {
@@ -1539,19 +1538,52 @@ var DOT_LABELS = [
   var section = document.querySelector('.whs-services');
   if (!section) return;
 
+  /* ── DETECT TOUCH DEVICE ── */
+  var IS_TOUCH = (
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  );
+
+  /* ── CONFIG ── */
+  var CONFIG = {
+    // Desktop values
+    DESKTOP: {
+      counterDuration: 1000,
+      enterDelay: 520,
+      tolerance: 80,
+    },
+    // Mobile values (faster)
+    MOBILE: {
+      counterDuration: 600,
+      enterDelay: 200,
+      tolerance: 100,
+    }
+  };
+
+  var settings = IS_TOUCH ? CONFIG.MOBILE : CONFIG.DESKTOP;
+
   /* ── Easing ── */
-  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function easeOutQuart(t) {
+    return 1 - Math.pow(1 - t, 4);
+  }
 
   /* ── Counter animation ── */
   function animateCounter(el, target, duration) {
-    var start  = performance.now();
+    var start = performance.now();
     var suffix = el.dataset.suffix || '';
+    var easing = IS_TOUCH ? easeOutQuart : easeOutCubic;
 
     function tick(now) {
       var progress = Math.min((now - start) / duration, 1);
-      var val = Math.round(easeOutCubic(progress) * target);
+      var val = Math.round(easing(progress) * target);
       el.textContent = val.toLocaleString() + suffix;
-      if (progress < 1) requestAnimationFrame(tick);
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
     }
     requestAnimationFrame(tick);
   }
@@ -1560,7 +1592,7 @@ var DOT_LABELS = [
     section.querySelectorAll('.whs-proof__value').forEach(function (el) {
       var target = parseInt(el.dataset.target, 10);
       if (isNaN(target)) return;
-      animateCounter(el, target, 1000);
+      animateCounter(el, target, settings.counterDuration);
     });
   }
 
@@ -1571,61 +1603,190 @@ var DOT_LABELS = [
     });
   }
 
-  /* ── Entrance / exit — replay every visit ── */
+  /* ── State ── */
+  var isActive = false;
+  var enterTimer = null;
+  var exitTimer = null;
+
+  /* ── Entrance / exit ── */
   function enter() {
+    if (isActive) return;
+    isActive = true;
+    clearTimeout(enterTimer);
+    clearTimeout(exitTimer);
+
     section.classList.add('is-visible');
-    setTimeout(runCounters, 520);
+
+    // Run counters after a short delay
+    enterTimer = setTimeout(function () {
+      runCounters();
+      enterTimer = null;
+    }, settings.enterDelay);
   }
 
   function exit() {
+    if (!isActive) return;
+    isActive = false;
+    clearTimeout(enterTimer);
+    clearTimeout(exitTimer);
+
     section.classList.remove('is-visible');
-    resetCounters();
+
+    // Reset counters with a small delay to allow animation to finish
+    exitTimer = setTimeout(function () {
+      resetCounters();
+      exitTimer = null;
+    }, 300);
   }
 
-  /* ── Detection ── */
-  var scrollContainer = document.getElementById('scroll-container');
-  var TOLERANCE = 80;
+  /* ── Detection using IntersectionObserver (preferred) ── */
+  var observer = null;
 
-  function checkActive() {
+  function initObserver() {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            enter();
+          } else {
+            exit();
+          }
+        });
+      }, {
+        threshold: 0.15,
+        rootMargin: '0px 0px -10% 0px'
+      });
+
+      observer.observe(section);
+    } else {
+      // Fallback to scroll detection
+      initScrollDetection();
+    }
+  }
+
+  /* ── Fallback: Scroll detection ── */
+  function initScrollDetection() {
+    var scrollContainer = document.getElementById('scroll-container');
     if (!scrollContainer) return;
-    var diff   = Math.abs(scrollContainer.scrollTop - section.offsetTop);
-    var active = diff <= TOLERANCE;
-    if (active && !section.classList.contains('is-visible')) enter();
-    if (!active && section.classList.contains('is-visible')) exit();
-  }
 
-  if (scrollContainer) {
-    scrollContainer.addEventListener('scroll', checkActive, { passive: true });
+    var TOLERANCE = settings.tolerance;
+    var checkTimer = null;
+
+    function checkActive() {
+      if (!section) return;
+      var diff = Math.abs(scrollContainer.scrollTop - section.offsetTop);
+      var active = diff <= TOLERANCE;
+
+      if (active && !isActive) {
+        enter();
+      } else if (!active && isActive) {
+        exit();
+      }
+    }
+
+    // Throttled scroll handler
+    function onScroll() {
+      if (checkTimer) return;
+      checkTimer = requestAnimationFrame(function () {
+        checkActive();
+        checkTimer = null;
+      });
+    }
+
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+
+    // Also check on resize
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        checkActive();
+      }, 250);
+    });
+
+    // Initial check
+    setTimeout(checkActive, 100);
   }
 
   /* ── Patch engine's voidGoToSection ── */
   (function patchGoTo() {
     var attempts = 0;
-    var poll = setInterval(function () {
+    var maxAttempts = 30;
+    var pollInterval = 80;
+
+    function tryPatch() {
       attempts++;
       if (typeof window.voidGoToSection === 'function') {
         var orig = window.voidGoToSection;
         window.voidGoToSection = function (idx) {
-          var panels  = Array.from(document.querySelectorAll('.panel'));
-          var ourIdx  = panels.indexOf(section);
-          if (idx !== ourIdx && section.classList.contains('is-visible')) exit();
+          var panels = Array.from(document.querySelectorAll('.panel'));
+          var ourIdx = panels.indexOf(section);
+
+          // If we're leaving this section, exit
+          if (idx !== ourIdx && isActive) {
+            exit();
+          }
+
+          // Call original
           orig(idx);
-          if (idx === ourIdx) setTimeout(enter, 60);
+
+          // If we're entering this section, enter
+          if (idx === ourIdx) {
+            // Small delay to let the panel settle
+            setTimeout(function () {
+              enter();
+            }, 60);
+          }
         };
         clearInterval(poll);
+        return true;
       }
-      if (attempts > 30) clearInterval(poll);
-    }, 80);
+
+      if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        return false;
+      }
+      return false;
+    }
+
+    var poll = setInterval(tryPatch, pollInterval);
   }());
 
   /* ── Load safety ── */
-  window.addEventListener('load', checkActive);
+  function onLoad() {
+    // Small delay to ensure everything is rendered
+    setTimeout(function () {
+      if (observer) {
+        // Force a check
+        observer.disconnect();
+        observer.observe(section);
+      }
+      // If using scroll detection, it's already initialized
+    }, 100);
+  }
 
-  /* ── Resize ── */
-  var resizeTimer;
-  window.addEventListener('resize', function () {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(checkActive, 200);
+  if (document.readyState === 'complete') {
+    onLoad();
+  } else {
+    window.addEventListener('load', onLoad);
+  }
+
+  /* ── Init ── */
+  initObserver();
+
+  /* ── Cleanup on page hide ── */
+  window.addEventListener('pagehide', function () {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    clearTimeout(enterTimer);
+    clearTimeout(exitTimer);
   });
 
 }());

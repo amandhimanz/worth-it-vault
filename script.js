@@ -99,33 +99,24 @@
 (function () {
   'use strict';
 
-  /* ============================================================
-     ❶  CONSTANTS
-  ============================================================ */
-  var CFG = {
-    MOVE_COOLDOWN       : 550,   // ms — section transition lock duration (was 700 — felt sluggish)
-    EDGE_TOLERANCE      : 6,     // px — how close to edge counts as "at boundary"
-    SWIPE_THRESHOLD     : 45,    // px — minimum swipe for fit-viewport panels (no inner scroll)
+ var CFG = {
+    MOVE_COOLDOWN       : 500,   // ms — section transition lock duration
+    EDGE_TOLERANCE      : 8,     // px — how close to edge counts as "at boundary"
+    SWIPE_THRESHOLD     : 40,    // px — minimum swipe for fit-viewport panels (no inner scroll)
     OVERLAY_DURATION    : 150,   // ms — flash overlay visible time
 
     // PC inner-scroll easing (wheel-driven, JS-owned rAF loop)
-    WHEEL_STEP_GAIN      : 0.42,  // how much of each wheel delta becomes added velocity (higher = punchier response)
-    WHEEL_FRICTION       : 0.88,  // velocity decay per animation frame (lower = settles faster, less "heavy" drift)
-    WHEEL_MIN_VELOCITY   : 0.05,  // px/frame — below this, the animation loop stops itself
-    WHEEL_MAX_VELOCITY   : 34,    // px/frame cap — keeps one aggressive wheel tick from launching too far
-    WHEEL_ACCUM_FOR_SNAP : 70,    // px of "pushing past the edge" needed before section changes (was 90 — took too long to trigger)
-    WHEEL_BOUNDARY_DECAY : 300,   // ms — reset boundary-push accumulator if wheel goes idle
+    WHEEL_STEP_GAIN      : 0.42,
+    WHEEL_FRICTION       : 0.88,
+    WHEEL_MIN_VELOCITY   : 0.05,
+    WHEEL_MAX_VELOCITY   : 34,
+    WHEEL_ACCUM_FOR_SNAP : 70,
+    WHEEL_BOUNDARY_DECAY : 300,
 
-    // Touch: on touchend we compare how far the finger travelled to how
-    // far the content actually scrolled during that same touch. Once an
-    // edge is hit the content can't absorb any more, so that gap
-    // ("pull") is what confirms intent to leave the section — checked
-    // live on every touch, no settle wait and no requirement that it be
-    // a new, separate touch. A fast flick needs less pull to confirm,
-    // since speed alone already signals intent.
-    TOUCH_PULL_THRESHOLD       : 18,   // px of "un-absorbable" drag needed at the edge to snap (was 24)
-    TOUCH_FLICK_VELOCITY       : 0.45, // px/ms — drags at or above this speed count as a flick (was 0.5)
-    TOUCH_FLICK_PULL_THRESHOLD : 8,    // px of pull needed at the edge when it's a fast flick (was 10)
+    // UPDATED TOUCH VALUES — lower thresholds for better responsiveness
+    TOUCH_PULL_THRESHOLD       : 15,   // Reduced from 18
+    TOUCH_FLICK_VELOCITY       : 0.40, // Reduced from 0.45
+    TOUCH_FLICK_PULL_THRESHOLD : 6,    // Reduced from 8
   };
   /* ============================================================
      ❷  DEVICE DETECTION
@@ -201,7 +192,6 @@
     setTimeout(assignBackgrounds, 200);
   });
 
-
   /* ============================================================
      ❻  INNER-SCROLL HELPERS
   ============================================================ */
@@ -222,21 +212,38 @@
     return r > 0 ? r : 0;
   }
 
+  /* ============================================================
+     ENHANCED EDGE DETECTION — FIXES MOBILE GETTING STUCK
+  ============================================================ */
+  function getEdgeState(idx) {
+    var c = getContent(idx);
+    if (!c) return { atTop: true, atBottom: true, range: 0, scrollTop: 0, isScrollable: false };
+    
+    var range = c.scrollHeight - c.clientHeight;
+    var scrollTop = c.scrollTop;
+    var tolerance = CFG.EDGE_TOLERANCE;
+    
+    return {
+      atTop: scrollTop <= tolerance,
+      atBottom: scrollTop >= (range - tolerance),
+      range: range,
+      scrollTop: scrollTop,
+      isScrollable: range > tolerance
+    };
+  }
+
   function isScrollable(idx) {
     return scrollRange(idx) > CFG.EDGE_TOLERANCE;
   }
 
+  // Updated isAtTop using getEdgeState
   function isAtTop(idx) {
-    var c = getContent(idx);
-    if (!c) return true;
-    return c.scrollTop <= CFG.EDGE_TOLERANCE;
+    return getEdgeState(idx).atTop;
   }
 
+  // Updated isAtBottom using getEdgeState
   function isAtBottom(idx) {
-    var c = getContent(idx);
-    if (!c) return true;
-    if (!isScrollable(idx)) return true;
-    return c.scrollTop >= (c.scrollHeight - c.clientHeight - CFG.EDGE_TOLERANCE);
+    return getEdgeState(idx).atBottom;
   }
 
   /** PC: should this panel use the JS-eased inner-scroll system? */
@@ -256,7 +263,6 @@
     if (st.raf) { cancelAnimationFrame(st.raf); st.raf = null; }
     if (st._resetTouchRest) st._resetTouchRest();
   }
-
 
   /* ============================================================
      ❼  CORE NAVIGATION
@@ -446,43 +452,19 @@
     w.lockTimer = setTimeout(function () { w.locked = false; }, CFG.MOVE_COOLDOWN);
   }
 
-
   /* ============================================================
-     ❿  TOUCH — BOUNDARY-AWARE SINGLE SWIPE
+     ❿  TOUCH — ADVANCED BOUNDARY-AWARE SINGLE SWIPE
      ──────────────────────────────────────────────────────────
-     The browser scrolls .section-content natively on touch —
-     that's already smooth (native momentum), so we never touch
-     scrollTop ourselves here. What we control is WHEN reaching
-     a boundary is allowed to advance to the next section — and
-     that's now decided on the SAME touch that reaches it, live,
-     with no settle wait and no requirement that it be a second,
-     separate touch.
-
-     On touchend we compare two distances covering the same touch:
-       • dY           — how far the finger actually travelled
-       • actualScroll — how far the content itself scrolled
-
-     While there's room left to scroll, those two stay roughly
-     equal. Once the content hits the top/bottom edge it can't
-     absorb any more of the drag, so the gap between them — the
-     PULL — starts growing in real time. Once PULL crosses
-     TOUCH_PULL_THRESHOLD while sitting at the relevant edge, that
-     single touch snaps immediately on release. A fast flick needs
-     less pull (TOUCH_FLICK_PULL_THRESHOLD) since speed alone
-     already signals intent.
-
-     This keeps the important guarantee from before — a normal
-     reading swipe that merely reaches the edge still just comes
-     to rest, it doesn't yank you into the next section — but
-     drops the artificial two-touch requirement that made every
-     transition feel like it needed a "warm-up" swipe first. It
-     also fixes the up-direction specifically: PULL is measured
-     fresh against this touch's own scroll delta, not a cached
-     flag that only got set by a previous scroll event, so
-     swiping back up the instant you arrive at a fresh panel
-     (scrollTop already 0, nothing left to absorb the drag) works
-     on the very first attempt — same as reaching the bottom
-     after reading does.
+     FIX: Uses touchstart position + finger travel distance
+     directly, instead of relying on unreliable scrollTop at
+     touchend (which gets polluted by momentum/rubber-banding).
+     
+     KEY IMPROVEMENTS:
+     1. Tracks edge state at touch START, not END
+     2. Monitors scroll delta during touch via touchmove
+     3. Uses finger distance directly (more reliable)
+     4. Handles "hit edge during scroll" scenario
+     5. Lower thresholds for better responsiveness
   ============================================================ */
   var touchLocked = false;
   function _lockTouchBriefly() {
@@ -493,119 +475,211 @@
   function initTouchHandlers() {
 
     panels.forEach(function (panel, idx) {
-      // Fall back to the panel itself if a .section-content wrapper is
-      // ever missing on some future panel — a panel must never silently
-      // end up with zero touch handling just because a wrapper class
-      // was left off (this is exactly what was broken before: About
-      // and Reviews had no .section-content, so this used to just
-      // `return` and those two panels got no touch listeners at all).
+      // Fall back to the panel itself if a .section-content wrapper is missing
       var c = panel.querySelector('.section-content') || panel;
+      if (!c) return;
 
-      var startY        = null;  // finger clientY at touchstart
-      var startX        = null;  // finger clientX at touchstart
-      var scrollAtStart = 0;     // c.scrollTop at touchstart
-      var startTime     = 0;     // e.timeStamp at touchstart
+      // ── STATE per touch ──
+      var touchState = {
+        startY: null,
+        startX: null,
+        startScrollTop: 0,
+        startTime: 0,
+        maxScrollDelta: 0,
+        minScrollDelta: 0,
+        touchDirection: null,
+        isAtEdgeOnStart: false,
+        edgeType: null, // 'top' or 'bottom'
+      };
+
+      function resetTouchState() {
+        touchState.startY = null;
+        touchState.startX = null;
+        touchState.startScrollTop = 0;
+        touchState.startTime = 0;
+        touchState.maxScrollDelta = 0;
+        touchState.minScrollDelta = 0;
+        touchState.touchDirection = null;
+        touchState.isAtEdgeOnStart = false;
+        touchState.edgeType = null;
+      }
 
       function onStart(e) {
         if (S.moving || touchLocked || idx !== S.current) return;
-        if (e.touches.length > 1) return; // ignore pinch/multi-touch
-        startY        = e.touches[0].clientY;
-        startX        = e.touches[0].clientX;
-        scrollAtStart = c.scrollTop;
-        startTime     = e.timeStamp;
+        if (e.touches.length > 1) return;
+
+        resetTouchState();
+
+        touchState.startY = e.touches[0].clientY;
+        touchState.startX = e.touches[0].clientX;
+        touchState.startScrollTop = c.scrollTop;
+        touchState.startTime = e.timeStamp;
+
+        // ── DETECT if we're at an edge on touch START ──
+        var range = c.scrollHeight - c.clientHeight;
+        var atTop = c.scrollTop <= CFG.EDGE_TOLERANCE;
+        var atBottom = c.scrollTop >= (range - CFG.EDGE_TOLERANCE);
+
+        if (atTop && idx > 0) {
+          touchState.isAtEdgeOnStart = true;
+          touchState.edgeType = 'top';
+        } else if (atBottom && idx < TOTAL - 1) {
+          touchState.isAtEdgeOnStart = true;
+          touchState.edgeType = 'bottom';
+        } else {
+          touchState.isAtEdgeOnStart = false;
+          touchState.edgeType = null;
+        }
       }
 
-      // A touch can end without touchend ever firing — iOS Control
-      // Center / Notification Center swipes and Android's edge
-      // back-gesture both cancel the in-progress touch instead. Left
-      // alone, that would strand `startY` set, and the next unrelated
-      // touchend elsewhere wouldn't fix it (each panel tracks its own
-      // startY). Dropping it here just means the interrupted gesture
-      // is treated as if it never started, which is the correct call.
+      function onMove(e) {
+        if (touchState.startY === null) return;
+        if (S.moving || touchLocked || idx !== S.current) return;
+
+        var currentY = e.touches[0].clientY;
+        var deltaY = touchState.startY - currentY; // positive = pulling up
+
+        // Track max/min scroll delta during the touch
+        var currentScrollDelta = c.scrollTop - touchState.startScrollTop;
+        if (currentScrollDelta > touchState.maxScrollDelta) {
+          touchState.maxScrollDelta = currentScrollDelta;
+        }
+        if (currentScrollDelta < touchState.minScrollDelta) {
+          touchState.minScrollDelta = currentScrollDelta;
+        }
+
+        // Track direction
+        if (Math.abs(deltaY) > 5) {
+          touchState.touchDirection = deltaY > 0 ? 'up' : 'down';
+        }
+      }
+
       function onCancel() {
-        startY = null;
-        startX = null;
+        resetTouchState();
       }
 
       function onEnd(e) {
-        if (startY === null) return;
-        var fromY      = startY;
-        var fromX      = startX;
-        var fromScroll = scrollAtStart;
-        var fromTime   = startTime;
-        startY = null;
-        startX = null;
-        if (S.moving || touchLocked || idx !== S.current) return;
+        // ── EARLY EXITS ──
+        if (touchState.startY === null) return;
+        if (S.moving || touchLocked || idx !== S.current) {
+          resetTouchState();
+          return;
+        }
 
         var endY = e.changedTouches[0].clientY;
         var endX = e.changedTouches[0].clientX;
-        var dY   = fromY - endY; // positive = dragged up = wants next section
-        var dX   = fromX - endX;
-
-        // A swipe that travelled more horizontally than vertically
-        // belongs to something else on the panel (the reviews carousel
-        // drag, e.g.) — never treat it as a request to change section.
-        // Genuine up/down swipes are untouched by this, since they
-        // naturally have dY well above dX already.
-        if (Math.abs(dX) > Math.abs(dY)) return;
-
-        // ── Sections with no inner scroll at all (e.g. Hero) ──
-        // Plain swipe-to-change-section, single motion.
-        if (!isScrollable(idx)) {
-          if (Math.abs(dY) < CFG.SWIPE_THRESHOLD) return;
-          var dir = dY > 0 ? 1 : -1;
-          if (dir === 1 && idx < TOTAL - 1) { if (moveTo(1)) _lockTouchBriefly(); }
-          else if (dir === -1 && idx > 0)   { if (moveTo(-1)) _lockTouchBriefly(); }
-          return;
-        }
-
-        // ── Scrollable sections: PULL = finger travel the content
-        //    couldn't absorb. Only grows once an edge is hit. Reads
-        //    are clamped to the valid [0, range] scroll span because
-        //    some mobile browsers (iOS Safari in particular) report a
-        //    transient rubber-band overshoot past 0/max mid-bounce,
-        //    which would otherwise throw the measurement off by a few
-        //    stray px right as the finger lifts. ──
-        var range        = scrollRange(idx);
-        var clampedStart = Math.max(0, Math.min(range, fromScroll));
-        var clampedNow   = Math.max(0, Math.min(range, c.scrollTop));
-        var actualScroll = clampedNow - clampedStart;
-        var pull         = Math.abs(dY) - Math.abs(actualScroll);
-
-        var elapsed  = Math.max(1, e.timeStamp - fromTime);
+        var dY = touchState.startY - endY; // positive = finger moved up
+        var dX = touchState.startX - endX;
+        var elapsed = Math.max(1, e.timeStamp - touchState.startTime);
         var velocity = Math.abs(dY) / elapsed; // px/ms
-        var needed   = velocity >= CFG.TOUCH_FLICK_VELOCITY
-          ? CFG.TOUCH_FLICK_PULL_THRESHOLD
-          : CFG.TOUCH_PULL_THRESHOLD;
 
-        if (pull < needed) return;
-
-        if (dY > 0 && isAtBottom(idx) && idx < TOTAL - 1) {
-          if (moveTo(1)) _lockTouchBriefly();
+        // ── REJECT HORIZONTAL SWIPES ──
+        if (Math.abs(dX) > Math.abs(dY)) {
+          resetTouchState();
           return;
         }
-        if (dY < 0 && isAtTop(idx) && idx > 0) {
-          if (moveTo(-1)) _lockTouchBriefly();
+
+        // ── CASE 1: NO INNER SCROLL (Hero, etc.) ──
+        if (!isScrollable(idx)) {
+          if (Math.abs(dY) < CFG.SWIPE_THRESHOLD) {
+            resetTouchState();
+            return;
+          }
+          var dir = dY > 0 ? 1 : -1;
+          if (dir === 1 && idx < TOTAL - 1) {
+            if (moveTo(1)) _lockTouchBriefly();
+          } else if (dir === -1 && idx > 0) {
+            if (moveTo(-1)) _lockTouchBriefly();
+          }
+          resetTouchState();
+          return;
         }
+
+        // ── CASE 2: SCROLLABLE SECTIONS ──
+        // The key insight: We use the touchstart state to know
+        // if we started at an edge. If we did, and the finger
+        // pulled outward, we can change sections.
+        // If we didn't start at an edge, this is a normal scroll.
+
+        var fingerDistance = Math.abs(dY);
+        var isFlick = velocity >= CFG.TOUCH_FLICK_VELOCITY;
+        var neededPull = isFlick ? CFG.TOUCH_FLICK_PULL_THRESHOLD : CFG.TOUCH_PULL_THRESHOLD;
+
+        // ── CHECK: Started at top, pulling down (to go UP) ──
+        if (touchState.isAtEdgeOnStart && touchState.edgeType === 'top' && dY < 0 && idx > 0) {
+          // Finger moved down = pulling from top edge
+          if (fingerDistance >= neededPull) {
+            if (moveTo(-1)) _lockTouchBriefly();
+            resetTouchState();
+            return;
+          }
+          resetTouchState();
+          return;
+        }
+
+        // ── CHECK: Started at bottom, pulling up (to go DOWN) ──
+        if (touchState.isAtEdgeOnStart && touchState.edgeType === 'bottom' && dY > 0 && idx < TOTAL - 1) {
+          // Finger moved up = pulling from bottom edge
+          if (fingerDistance >= neededPull) {
+            if (moveTo(1)) _lockTouchBriefly();
+            resetTouchState();
+            return;
+          }
+          resetTouchState();
+          return;
+        }
+
+        // ── NOT AT EDGE ON START: Normal scroll ──
+        // BUT we also need to detect when momentum carries us to an edge
+        // and the user tries to pull further on the SAME touch.
+        // For this, we check if during the touch, we hit an edge,
+        // and then continued pulling outward.
+
+        var range = c.scrollHeight - c.clientHeight;
+        var hitTopDuringTouch = touchState.minScrollDelta <= -CFG.EDGE_TOLERANCE && 
+                                (touchState.startScrollTop + touchState.minScrollDelta) <= CFG.EDGE_TOLERANCE;
+        var hitBottomDuringTouch = touchState.maxScrollDelta >= CFG.EDGE_TOLERANCE && 
+                                   (touchState.startScrollTop + touchState.maxScrollDelta) >= (range - CFG.EDGE_TOLERANCE);
+
+        // ── HIT TOP DURING TOUCH, now pulling down ──
+        if (hitTopDuringTouch && dY < 0 && idx > 0) {
+          // We started not at top, hit it during scroll, and now pulling outward
+          if (fingerDistance >= neededPull) {
+            if (moveTo(-1)) _lockTouchBriefly();
+            resetTouchState();
+            return;
+          }
+        }
+
+        // ── HIT BOTTOM DURING TOUCH, now pulling up ──
+        if (hitBottomDuringTouch && dY > 0 && idx < TOTAL - 1) {
+          if (fingerDistance >= neededPull) {
+            if (moveTo(1)) _lockTouchBriefly();
+            resetTouchState();
+            return;
+          }
+        }
+
+        // ── DEFAULT: Let the browser handle normal scrolling ──
+        resetTouchState();
       }
 
-      c.addEventListener('touchstart',  onStart,  { passive: true });
-      c.addEventListener('touchend',    onEnd,    { passive: true });
+      // ── ATTACH LISTENERS ──
+      c.addEventListener('touchstart', onStart, { passive: true });
+      c.addEventListener('touchmove', onMove, { passive: true });
+      c.addEventListener('touchend', onEnd, { passive: true });
       c.addEventListener('touchcancel', onCancel, { passive: true });
 
       S.panelState[idx]._touchCleanup = function () {
         c.removeEventListener('touchstart', onStart);
+        c.removeEventListener('touchmove', onMove);
         c.removeEventListener('touchend', onEnd);
         c.removeEventListener('touchcancel', onCancel);
       };
 
-      S.panelState[idx]._resetTouchRest = function () {
-        startY = null;
-        startX = null;
-      };
+      S.panelState[idx]._resetTouchRest = resetTouchState;
     });
   }
-
 
   /* ============================================================
      ⓬  PC — HYBRID SWIPE (trackpad tablets, Surface, etc.)

@@ -2972,6 +2972,74 @@ a { color: inherit; text-decoration: none; }
     width: 100%;
     max-width: 280px;
   }
+
+  /* Leave room at the bottom of the form so the last field/button
+     isn't hidden behind the floating CTA bar while typing */
+  .whbk-form, .whcr-form {
+    padding-bottom: 88px;
+  }
+}
+
+/* ============================================================
+   MOBILE FLOATING SUBMIT BAR — Booking & Careers
+   Hidden everywhere by default; only ever shown on real touch
+   devices, only while the section is active and a field is focused.
+   ============================================================ */
+.whbk-mobile-cta, .whcr-mobile-cta {
+  display: none; /* never shows on desktop, full stop */
+}
+
+@media (hover: none) and (pointer: coarse) {
+
+  .whbk-mobile-cta, .whcr-mobile-cta {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.7rem 1.2rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, rgba(8,9,11,0.98) 55%, rgba(8,9,11,0.9) 85%, rgba(8,9,11,0));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), bottom 0.15s ease;
+    touch-action: none;        /* stop native scroll gestures starting here */
+    overscroll-behavior: contain;
+  }
+
+  .whbk-mobile-cta--visible, .whcr-mobile-cta--visible {
+    display: flex;
+    transform: translateY(0);
+  }
+
+  .whbk-mobile-cta__btn, .whcr-mobile-cta__btn {
+    width: 100%;
+    max-width: 420px;
+    padding: 0.85rem 1.5rem;
+    background: linear-gradient(135deg, #C7A655, #EADCBE);
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #08090b;
+    cursor: pointer;
+  }
+
+  .whbk-mobile-cta__note, .whcr-mobile-cta__note {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    color: rgba(242, 237, 230, 0.55);
+    text-align: center;
+  }
+
+  .whbk-mobile-cta__note strong, .whcr-mobile-cta__note strong {
+    color: rgba(242, 237, 230, 0.75);
+  }
 }
 
 /* ============================================================

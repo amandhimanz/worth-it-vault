@@ -3007,8 +3007,6 @@ a { color: inherit; text-decoration: none; }
     -webkit-backdrop-filter: blur(10px);
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), bottom 0.15s ease;
-    touch-action: none;        /* stop native scroll gestures starting here */
-    overscroll-behavior: contain;
   }
 
   .whbk-mobile-cta--visible, .whcr-mobile-cta--visible {

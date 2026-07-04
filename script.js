@@ -1513,133 +1513,18 @@
   var successBtn = document.getElementById('whbk-success-btn');
   var errorBtn = document.getElementById('whbk-error-btn');
 
-  /* ── LOCK STATE ── */
-  var isLocked = false;
-  var swipeCount = 0;
-  var lockTimer = null;
-  var lockIndicator = section.querySelector('.lock-indicator');
-
-  /* ── Helper: Show/Hide Lock Indicator ── */
-  function showLockIndicator(message) {
-    if (lockIndicator) {
-      lockIndicator.textContent = message || '👆 Swipe again to exit';
-      lockIndicator.style.display = 'block';
-      section.dataset.locked = 'true';
-    }
+  function isTouchMobile() {
+    return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   }
-
-  function hideLockIndicator() {
-    if (lockIndicator) {
-      lockIndicator.style.display = 'none';
-      section.dataset.locked = 'false';
-    }
-  }
-
-  function resetSwipeCount() {
-    swipeCount = 0;
-  }
-
-  /* ── LOCK INPUTS ── */
-  var lockInputs = section.querySelectorAll('.whbk-lock-input');
-  lockInputs.forEach(function(input) {
-    // On focus — lock the section
-    input.addEventListener('focus', function() {
-      isLocked = true;
-      showLockIndicator('🔒 Typing... Swipe twice to exit');
-      resetSwipeCount();
-      
-      // Clear any existing timer
-      if (lockTimer) {
-        clearTimeout(lockTimer);
-        lockTimer = null;
-      }
-    });
-
-    // On blur — unlock after a short delay
-    input.addEventListener('blur', function() {
-      // Wait a moment to see if user tabs to another input
-      lockTimer = setTimeout(function() {
-        // Check if any input in this section has focus
-        var activeElement = document.activeElement;
-        var isInSection = activeElement && section.contains(activeElement) && 
-                         activeElement.classList.contains('whbk-lock-input');
-        
-        if (!isInSection) {
-          isLocked = false;
-          hideLockIndicator();
-          resetSwipeCount();
-        }
-        lockTimer = null;
-      }, 300);
-    });
-
-    // On input (typing) — reset swipe count
-    input.addEventListener('input', function() {
-      if (isLocked) {
-        resetSwipeCount();
-        showLockIndicator('🔒 Typing... Swipe twice to exit');
-      }
-    });
-  });
-
-  /* ── PATCH SNAP SCROLL WITH DOUBLE SWIPE ── */
-  (function patchSnapScroll() {
-    var attempts = 0;
-    var poll = setInterval(function() {
-      attempts++;
-      
-      // Look for the snap scroll function (adjust name as needed)
-      if (typeof window.goToSection === 'function' || typeof window.voidGoToSection === 'function') {
-        var snapFn = window.goToSection || window.voidGoToSection;
-        
-        // Store original function
-        var originalFn = snapFn;
-        var functionName = window.goToSection ? 'goToSection' : 'voidGoToSection';
-        
-        // Override with double-swipe check
-        window[functionName] = function(targetIndex) {
-          // If locked, handle double swipe
-          if (isLocked) {
-            swipeCount++;
-            
-            if (swipeCount === 1) {
-              showLockIndicator('👆 Swipe again to exit');
-              // Vibrate on mobile if available
-              if (navigator.vibrate) navigator.vibrate(20);
-              return; // Block the navigation
-            } else if (swipeCount >= 2) {
-              // Double swipe detected — unlock and navigate
-              isLocked = false;
-              hideLockIndicator();
-              resetSwipeCount();
-              // Remove focus from any input
-              if (document.activeElement && section.contains(document.activeElement)) {
-                document.activeElement.blur();
-              }
-              // Now navigate
-              originalFn(targetIndex);
-              return;
-            }
-            return; // Block navigation
-          }
-          
-          // Not locked — normal navigation
-          originalFn(targetIndex);
-        };
-        
-        clearInterval(poll);
-        return;
-      }
-      
-      if (attempts > 30) clearInterval(poll);
-    }, 80);
-  })();
 
   /* ── Helper: Scroll inside the section's content area ── */
   function scrollToSectionTop() {
     var content = section.querySelector('.section-content');
-    if (content) {
-      content.scrollTop = 0;
+    if (!content) return;
+    if (isTouchMobile()) {
+      content.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      content.scrollTop = 0; // unchanged desktop behavior
     }
   }
 
@@ -1678,12 +1563,7 @@
           if (successEl) successEl.classList.add('whbk-success--visible');
           form.reset();
 
-          // Unlock and hide indicator on success
-          isLocked = false;
-          hideLockIndicator();
-          resetSwipeCount();
-
-          // Scroll to top of section content
+          // ── SCROLL TO TOP OF SECTION CONTENT ──
           setTimeout(function () {
             scrollToSectionTop();
           }, 150);
@@ -1713,13 +1593,13 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whbk-success--visible');
       form.classList.remove('whbk-form--hidden');
-      // Unlock
-      isLocked = false;
-      hideLockIndicator();
-      resetSwipeCount();
+      // Scroll back to form inside the section
       setTimeout(function () {
         var content = section.querySelector('.section-content');
-        if (content) {
+        if (!content) return;
+        if (isTouchMobile()) {
+          content.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
           content.scrollTop = 0;
         }
       }, 100);
@@ -1730,22 +1610,12 @@
   if (errorBtn) {
     errorBtn.addEventListener('click', function () {
       if (errorEl) errorEl.classList.remove('whbk-error--visible');
-      // Unlock on error dismiss
-      isLocked = false;
-      hideLockIndicator();
-      resetSwipeCount();
     });
   }
 
   /* ── Entrance / Exit ── */
   function enter() { section.classList.add('is-visible'); }
-  function exit() { 
-    section.classList.remove('is-visible');
-    // Unlock when leaving section
-    isLocked = false;
-    hideLockIndicator();
-    resetSwipeCount();
-  }
+  function exit() { section.classList.remove('is-visible'); }
 
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function(entries){
@@ -1799,122 +1669,18 @@
   var successBtn = document.getElementById('whcr-success-btn');
   var errorBtn = document.getElementById('whcr-error-btn');
 
-  /* ── LOCK STATE ── */
-  var isLocked = false;
-  var swipeCount = 0;
-  var lockTimer = null;
-  var lockIndicator = section.querySelector('.lock-indicator');
-
-  /* ── Helper: Show/Hide Lock Indicator ── */
-  function showLockIndicator(message) {
-    if (lockIndicator) {
-      lockIndicator.textContent = message || '👆 Swipe again to exit';
-      lockIndicator.style.display = 'block';
-      section.dataset.locked = 'true';
-    }
+  function isTouchMobile() {
+    return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   }
-
-  function hideLockIndicator() {
-    if (lockIndicator) {
-      lockIndicator.style.display = 'none';
-      section.dataset.locked = 'false';
-    }
-  }
-
-  function resetSwipeCount() {
-    swipeCount = 0;
-  }
-
-  /* ── LOCK INPUTS ── */
-  var lockInputs = section.querySelectorAll('.whcr-lock-input');
-  lockInputs.forEach(function(input) {
-    // On focus — lock the section
-    input.addEventListener('focus', function() {
-      isLocked = true;
-      showLockIndicator('🔒 Typing... Swipe twice to exit');
-      resetSwipeCount();
-      
-      // Clear any existing timer
-      if (lockTimer) {
-        clearTimeout(lockTimer);
-        lockTimer = null;
-      }
-    });
-
-    // On blur — unlock after a short delay
-    input.addEventListener('blur', function() {
-      // Wait a moment to see if user tabs to another input
-      lockTimer = setTimeout(function() {
-        // Check if any input in this section has focus
-        var activeElement = document.activeElement;
-        var isInSection = activeElement && section.contains(activeElement) && 
-                         activeElement.classList.contains('whcr-lock-input');
-        
-        if (!isInSection) {
-          isLocked = false;
-          hideLockIndicator();
-          resetSwipeCount();
-        }
-        lockTimer = null;
-      }, 300);
-    });
-
-    // On input (typing) — reset swipe count
-    input.addEventListener('input', function() {
-      if (isLocked) {
-        resetSwipeCount();
-        showLockIndicator('🔒 Typing... Swipe twice to exit');
-      }
-    });
-  });
-
-  /* ── PATCH SNAP SCROLL WITH DOUBLE SWIPE ── */
-  (function patchSnapScroll() {
-    var attempts = 0;
-    var poll = setInterval(function() {
-      attempts++;
-      
-      if (typeof window.goToSection === 'function' || typeof window.voidGoToSection === 'function') {
-        var snapFn = window.goToSection || window.voidGoToSection;
-        var originalFn = snapFn;
-        var functionName = window.goToSection ? 'goToSection' : 'voidGoToSection';
-        
-        window[functionName] = function(targetIndex) {
-          if (isLocked) {
-            swipeCount++;
-            
-            if (swipeCount === 1) {
-              showLockIndicator('👆 Swipe again to exit');
-              if (navigator.vibrate) navigator.vibrate(20);
-              return;
-            } else if (swipeCount >= 2) {
-              isLocked = false;
-              hideLockIndicator();
-              resetSwipeCount();
-              if (document.activeElement && section.contains(document.activeElement)) {
-                document.activeElement.blur();
-              }
-              originalFn(targetIndex);
-              return;
-            }
-            return;
-          }
-          originalFn(targetIndex);
-        };
-        
-        clearInterval(poll);
-        return;
-      }
-      
-      if (attempts > 30) clearInterval(poll);
-    }, 80);
-  })();
 
   /* ── Helper: Scroll inside the section's content area ── */
   function scrollToSectionTop() {
     var content = section.querySelector('.section-content');
-    if (content) {
-      content.scrollTop = 0;
+    if (!content) return;
+    if (isTouchMobile()) {
+      content.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      content.scrollTop = 0; // unchanged desktop behavior
     }
   }
 
@@ -1925,14 +1691,17 @@
 
       var data = new FormData(form);
 
+      // Show loading state
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.classList.add('whcr-submit--loading');
       }
 
+      // Hide any previous error/success
       if (errorEl) errorEl.classList.remove('whcr-error--visible');
       if (successEl) successEl.classList.remove('whcr-success--visible');
 
+      // Submit to Formspree
       fetch('https://formspree.io/f/xeebraeo', {
         method: 'POST',
         body: data,
@@ -1942,6 +1711,7 @@
       })
       .then(function (response) {
         if (response.ok) {
+          // Success — hide form, show success
           form.classList.add('whcr-form--hidden');
           var nameInput = document.getElementById('whcr-name');
           var firstName = nameInput ? nameInput.value.trim().split(' ')[0] : 'there';
@@ -1949,16 +1719,13 @@
           if (successEl) successEl.classList.add('whcr-success--visible');
           form.reset();
 
-          // Unlock on success
-          isLocked = false;
-          hideLockIndicator();
-          resetSwipeCount();
-
+          // Scroll to top of section content
           setTimeout(function () {
             scrollToSectionTop();
           }, 150);
 
         } else {
+          // Error from server
           return response.json().then(function (data) {
             throw new Error(data.error || 'Something went wrong — please try again.');
           });
@@ -1982,12 +1749,12 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whcr-success--visible');
       form.classList.remove('whcr-form--hidden');
-      isLocked = false;
-      hideLockIndicator();
-      resetSwipeCount();
       setTimeout(function () {
         var content = section.querySelector('.section-content');
-        if (content) {
+        if (!content) return;
+        if (isTouchMobile()) {
+          content.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
           content.scrollTop = 0;
         }
       }, 100);
@@ -1998,20 +1765,12 @@
   if (errorBtn) {
     errorBtn.addEventListener('click', function () {
       if (errorEl) errorEl.classList.remove('whcr-error--visible');
-      isLocked = false;
-      hideLockIndicator();
-      resetSwipeCount();
     });
   }
 
   /* ── Entrance / Exit ── */
   function enter() { section.classList.add('is-visible'); }
-  function exit() { 
-    section.classList.remove('is-visible');
-    isLocked = false;
-    hideLockIndicator();
-    resetSwipeCount();
-  }
+  function exit() { section.classList.remove('is-visible'); }
 
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function(entries){

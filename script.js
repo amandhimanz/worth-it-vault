@@ -1512,6 +1512,8 @@
   var successName = document.getElementById('whbk-success-name');
   var successBtn = document.getElementById('whbk-success-btn');
   var errorBtn = document.getElementById('whbk-error-btn');
+  var mobileCta = document.getElementById('whbk-mobile-cta');
+  var mobileCtaBtn = document.getElementById('whbk-mobile-cta-btn');
 
   function isTouchMobile() {
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1525,6 +1527,60 @@
       content.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       content.scrollTop = 0; // unchanged desktop behavior
+    }
+  }
+
+  /* ── Floating mobile submit bar (shows above keyboard) ── */
+  function showMobileCta() {
+    if (!mobileCta) return;
+    mobileCta.classList.add('whbk-mobile-cta--visible');
+    mobileCta.setAttribute('aria-hidden', 'false');
+  }
+  function hideMobileCta() {
+    if (!mobileCta) return;
+    mobileCta.classList.remove('whbk-mobile-cta--visible');
+    mobileCta.setAttribute('aria-hidden', 'true');
+  }
+
+  if (form && mobileCta && mobileCtaBtn) {
+    // Show it the moment a field is focused (mobile + section active only)
+    form.addEventListener('focusin', function (e) {
+      if (!isTouchMobile()) return;
+      if (!section.classList.contains('is-visible')) return;
+      if (e.target.matches('input, select, textarea')) showMobileCta();
+    });
+
+    // Hide it once focus leaves the form entirely
+    form.addEventListener('focusout', function () {
+      setTimeout(function () {
+        if (!form.contains(document.activeElement)) hideMobileCta();
+      }, 60);
+    });
+
+    // Tapping the floating button just triggers the real submit button
+    mobileCtaBtn.addEventListener('click', function () {
+      if (submitBtn) submitBtn.click();
+    });
+
+    // Keep swipes on this bar from ever reaching the snap-scroll system
+    ['touchstart', 'touchend'].forEach(function (evt) {
+      mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
+    });
+    mobileCta.addEventListener('touchmove', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }, { passive: false });
+
+    // Track the keyboard height live and sit right above it
+    if (window.visualViewport) {
+      var updateCtaOffset = function () {
+        if (!isTouchMobile()) return;
+        var vv = window.visualViewport;
+        var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        mobileCta.style.bottom = kb + 'px';
+      };
+      window.visualViewport.addEventListener('resize', updateCtaOffset);
+      window.visualViewport.addEventListener('scroll', updateCtaOffset);
     }
   }
 
@@ -1557,6 +1613,7 @@
         if (response.ok) {
           // Success — hide form, show success
           form.classList.add('whbk-form--hidden');
+          hideMobileCta();
           var nameInput = document.getElementById('whbk-name');
           var firstName = nameInput ? nameInput.value.trim().split(' ')[0] : 'there';
           if (successName) successName.textContent = firstName;
@@ -1615,7 +1672,7 @@
 
   /* ── Entrance / Exit ── */
   function enter() { section.classList.add('is-visible'); }
-  function exit() { section.classList.remove('is-visible'); }
+  function exit() { section.classList.remove('is-visible'); hideMobileCta(); }
 
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function(entries){
@@ -1668,6 +1725,8 @@
   var successName = document.getElementById('whcr-success-name');
   var successBtn = document.getElementById('whcr-success-btn');
   var errorBtn = document.getElementById('whcr-error-btn');
+  var mobileCta = document.getElementById('whcr-mobile-cta');
+  var mobileCtaBtn = document.getElementById('whcr-mobile-cta-btn');
 
   function isTouchMobile() {
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1681,6 +1740,60 @@
       content.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       content.scrollTop = 0; // unchanged desktop behavior
+    }
+  }
+
+  /* ── Floating mobile submit bar (shows above keyboard) ── */
+  function showMobileCta() {
+    if (!mobileCta) return;
+    mobileCta.classList.add('whcr-mobile-cta--visible');
+    mobileCta.setAttribute('aria-hidden', 'false');
+  }
+  function hideMobileCta() {
+    if (!mobileCta) return;
+    mobileCta.classList.remove('whcr-mobile-cta--visible');
+    mobileCta.setAttribute('aria-hidden', 'true');
+  }
+
+  if (form && mobileCta && mobileCtaBtn) {
+    // Show it the moment a field is focused (mobile + section active only)
+    form.addEventListener('focusin', function (e) {
+      if (!isTouchMobile()) return;
+      if (!section.classList.contains('is-visible')) return;
+      if (e.target.matches('input, select, textarea')) showMobileCta();
+    });
+
+    // Hide it once focus leaves the form entirely
+    form.addEventListener('focusout', function () {
+      setTimeout(function () {
+        if (!form.contains(document.activeElement)) hideMobileCta();
+      }, 60);
+    });
+
+    // Tapping the floating button just triggers the real submit button
+    mobileCtaBtn.addEventListener('click', function () {
+      if (submitBtn) submitBtn.click();
+    });
+
+    // Keep swipes on this bar from ever reaching the snap-scroll system
+    ['touchstart', 'touchend'].forEach(function (evt) {
+      mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
+    });
+    mobileCta.addEventListener('touchmove', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }, { passive: false });
+
+    // Track the keyboard height live and sit right above it
+    if (window.visualViewport) {
+      var updateCtaOffset = function () {
+        if (!isTouchMobile()) return;
+        var vv = window.visualViewport;
+        var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        mobileCta.style.bottom = kb + 'px';
+      };
+      window.visualViewport.addEventListener('resize', updateCtaOffset);
+      window.visualViewport.addEventListener('scroll', updateCtaOffset);
     }
   }
 
@@ -1713,6 +1826,7 @@
         if (response.ok) {
           // Success — hide form, show success
           form.classList.add('whcr-form--hidden');
+          hideMobileCta();
           var nameInput = document.getElementById('whcr-name');
           var firstName = nameInput ? nameInput.value.trim().split(' ')[0] : 'there';
           if (successName) successName.textContent = firstName;
@@ -1770,7 +1884,7 @@
 
   /* ── Entrance / Exit ── */
   function enter() { section.classList.add('is-visible'); }
-  function exit() { section.classList.remove('is-visible'); }
+  function exit() { section.classList.remove('is-visible'); hideMobileCta(); }
 
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function(entries){

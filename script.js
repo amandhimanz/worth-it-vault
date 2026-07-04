@@ -2097,18 +2097,16 @@ var DOT_LABELS = [
   /* ── CONFIG ── */
   var CONFIG = {
     DESKTOP: {
-      autoPlayDelay: 6000,
-      transitionDuration: 700,
-      lockDuration: 700,
-      swipeThreshold: 48,
-      barUpdateInterval: 12,
+      autoPlayDelay: 5000,
+      transitionDuration: 600,
+      lockDuration: 600,
+      swipeThreshold: 50,
     },
     MOBILE: {
-      autoPlayDelay: 4000,      // Faster on mobile
-      transitionDuration: 450,   // Faster on mobile
-      lockDuration: 500,
-      swipeThreshold: 34,
-      barUpdateInterval: 16,
+      autoPlayDelay: 3500,
+      transitionDuration: 400,
+      lockDuration: 400,
+      swipeThreshold: 30,
     }
   };
 
@@ -2124,7 +2122,6 @@ var DOT_LABELS = [
   var isVisible = false;
   var touchStartX = null;
   var touchStartY = null;
-  var touchStartTime = 0;
   var isSwiping = false;
 
   /* ── POSITION CALCULATION ── */
@@ -2251,7 +2248,6 @@ var DOT_LABELS = [
     var touch = e.touches[0];
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
-    touchStartTime = Date.now();
     isSwiping = false;
     pause();
   }
@@ -2262,7 +2258,6 @@ var DOT_LABELS = [
     var dx = touch.clientX - touchStartX;
     var dy = touch.clientY - touchStartY;
 
-    // Detect if this is a horizontal swipe
     if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
       isSwiping = true;
       e.preventDefault();
@@ -2276,13 +2271,8 @@ var DOT_LABELS = [
     var endY = e.changedTouches[0].clientY;
     var dx = endX - touchStartX;
     var dy = endY - touchStartY;
-    var elapsed = Date.now() - touchStartTime;
-    var velocity = Math.abs(dx) / Math.max(elapsed, 1);
 
-    var threshold = IS_TOUCH ? settings.swipeThreshold : 48;
-
-    // Only trigger if horizontal swipe and strong enough
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > settings.swipeThreshold) {
       if (dx < 0) {
         next(true);
       } else {
@@ -2294,10 +2284,9 @@ var DOT_LABELS = [
     touchStartY = null;
     isSwiping = false;
 
-    // Resume auto-play after a small delay
     setTimeout(function () {
       resume();
-    }, 200);
+    }, 150);
   }
 
   function handleTouchCancel() {
@@ -2351,33 +2340,15 @@ var DOT_LABELS = [
         next(true);
       }
     });
-
-    // Touch feedback for side cards
-    card.addEventListener('touchstart', function (e) {
-      var pos = card.getAttribute('data-pos');
-      if (pos === 'left' || pos === 'right') {
-        card.style.opacity = '0.5';
-      }
-    }, { passive: true });
-
-    card.addEventListener('touchend', function (e) {
-      card.style.opacity = '';
-    }, { passive: true });
   });
 
   /* ── BUTTONS ── */
   if (btnPrev) {
     btnPrev.addEventListener('click', function () { prev(true); });
-    btnPrev.addEventListener('touchstart', function (e) {
-      e.preventDefault();
-    }, { passive: true });
   }
 
   if (btnNext) {
     btnNext.addEventListener('click', function () { next(true); });
-    btnNext.addEventListener('touchstart', function (e) {
-      e.preventDefault();
-    }, { passive: true });
   }
 
   /* ── DOTS ── */
@@ -2385,11 +2356,6 @@ var DOT_LABELS = [
     dot.addEventListener('click', function () {
       goTo(idx, true);
     });
-
-    dot.addEventListener('touchstart', function (e) {
-      // Prevent double tap issues on mobile
-      e.preventDefault();
-    }, { passive: true });
 
     dot.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowLeft') {
@@ -2472,13 +2438,11 @@ var DOT_LABELS = [
         }
       });
     }, {
-      threshold: 0.35,
+      threshold: 0.3,
       rootMargin: '0px 0px -10% 0px'
     });
 
     observer.observe(section);
-
-    // Store observer for cleanup
     window._whrObserver = observer;
   }
 
@@ -2498,7 +2462,6 @@ var DOT_LABELS = [
       var ours = panels.indexOf(section);
 
       if (idx !== ours) {
-        // Leaving this section
         isVisible = false;
         clearInterval(timer);
         stopBar();
@@ -2507,7 +2470,6 @@ var DOT_LABELS = [
       orig(idx);
 
       if (idx === ours) {
-        // Entering this section
         isVisible = true;
         setTimeout(function () {
           render(0);
@@ -2521,7 +2483,6 @@ var DOT_LABELS = [
     return true;
   }
 
-  // Try to patch immediately, if not available, poll
   if (!patchEngine()) {
     var tries = 0;
     var poll = setInterval(function () {
@@ -2536,7 +2497,6 @@ var DOT_LABELS = [
   function handleResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      // Re-render to adjust positions if needed
       render(current);
     }, 250);
   }
@@ -2566,7 +2526,6 @@ var DOT_LABELS = [
   /* ── INIT ── */
   render(0);
 
-  // Small delay to ensure everything is ready
   setTimeout(function () {
     if (!paused && isVisible) {
       startAuto();
@@ -2604,8 +2563,6 @@ var DOT_LABELS = [
       }
     }
   };
-
-  console.log('[Reviews Carousel] Initialized - ' + (IS_TOUCH ? 'TOUCH' : 'DESKTOP') + ' mode');
 
 })();
 

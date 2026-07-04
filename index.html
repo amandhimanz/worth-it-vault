@@ -108,7 +108,7 @@
 
       <!-- Headline -->
       <h1 class="whbc-headline">
-        <span class="whbc-hl--word1">check</span>
+        <span class="whbc-hl--word1">Move With</span>
         <span class="whbc-hl--word2">Purpose</span>
       </h1>
 
@@ -390,9 +390,7 @@
   </div>
 
 </section>
-
-
- <!-- ============================================================
+<!-- ============================================================
   BOOK A SHIPMENT — Western Hawk Logistics
   Formspree endpoint: https://formspree.io/f/xeebraeo
   ============================================================ -->
@@ -404,7 +402,7 @@
   aria-label="Book a Shipment — Western Hawk"
   data-bg-landscape="images/book_form.png"
   data-bg-portrait="images/phone.png"
-  data-locked="false"
+
 >
 
   <!-- Atmospheric layers -->
@@ -415,11 +413,6 @@
   <div class="whbk-corner whbk-corner--tl" aria-hidden="true"></div>
   <div class="whbk-corner whbk-corner--br" aria-hidden="true"></div>
   <div class="whbk-gold-bar" aria-hidden="true"></div>
-
-  <!-- LOCK INDICATOR -->
-  <div class="lock-indicator" style="display:none;">
-    👆 Swipe again to exit
-  </div>
 
   <!-- ═══════════════ CONTENT ═══════════════ -->
   <div class="section-content whbk-wrap">
@@ -456,22 +449,22 @@
         <div class="whbk-row">
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-company">Company Name</label>
-            <input type="text" id="whbk-company" name="company" class="whbk-input whbk-lock-input" placeholder="Your Company Ltd." required />
+            <input type="text" id="whbk-company" name="company" class="whbk-input" placeholder="Your Company Ltd." required />
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-name">Contact Person</label>
-            <input type="text" id="whbk-name" name="name" class="whbk-input whbk-lock-input" placeholder="John Doe" required />
+            <input type="text" id="whbk-name" name="name" class="whbk-input" placeholder="John Doe" required />
           </div>
         </div>
 
         <div class="whbk-row">
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-email">Email Address</label>
-            <input type="email" id="whbk-email" name="email" class="whbk-input whbk-lock-input" placeholder="you@company.com" required />
+            <input type="email" id="whbk-email" name="email" class="whbk-input" placeholder="you@company.com" required />
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-phone">Phone Number</label>
-            <input type="tel" id="whbk-phone" name="phone" class="whbk-input whbk-lock-input" placeholder="9350598958" required />
+            <input type="tel" id="whbk-phone" name="phone" class="whbk-input" placeholder="9350598958" required />
           </div>
         </div>
 
@@ -480,7 +473,7 @@
         <div class="whbk-row">
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-service">Service Type</label>
-            <select id="whbk-service" name="service" class="whbk-input whbk-select whbk-lock-input" required>
+            <select id="whbk-service" name="service" class="whbk-input whbk-select" required>
               <option value="" disabled selected>Select service...</option>
               <option value="Full Truckload (FTL)">Full Truckload (FTL)</option>
               <option value="Less Than Truckload (LTL)">Less Than Truckload (LTL)</option>
@@ -494,7 +487,7 @@
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-freight">Freight Type</label>
-            <select id="whbk-freight" name="freight_type" class="whbk-input whbk-select whbk-lock-input" required>
+            <select id="whbk-freight" name="freight_type" class="whbk-input whbk-select" required>
               <option value="" disabled selected>Select freight...</option>
               <option value="Palletized Goods">Palletized Goods</option>
               <option value="Construction Materials">Construction Materials</option>
@@ -512,15 +505,15 @@
         <div class="whbk-row whbk-row--triple">
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-weight">Approx. Weight</label>
-            <input type="text" id="whbk-weight" name="weight" class="whbk-input whbk-lock-input" placeholder="e.g. 5,000 kg" />
+            <input type="text" id="whbk-weight" name="weight" class="whbk-input" placeholder="e.g. 5,000 kg" />
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-pallets">No. of Pallets</label>
-            <input type="number" id="whbk-pallets" name="pallets" class="whbk-input whbk-lock-input" placeholder="e.g. 4" min="1" />
+            <input type="number" id="whbk-pallets" name="pallets" class="whbk-input" placeholder="e.g. 4" min="1" />
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-dimensions">Dimensions (L×W×H)</label>
-            <input type="text" id="whbk-dimensions" name="dimensions" class="whbk-input whbk-lock-input" placeholder="e.g. 48×40×60 in" />
+            <input type="text" id="whbk-dimensions" name="dimensions" class="whbk-input" placeholder="e.g. 48×40×60 in" />
           </div>
         </div>
 
@@ -529,22 +522,22 @@
         <div class="whbk-row">
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-pickup">Pickup Location</label>
-            <input type="text" id="whbk-pickup" name="pickup" class="whbk-input whbk-lock-input" placeholder="City, Province" required />
+            <input type="text" id="whbk-pickup" name="pickup" class="whbk-input" placeholder="City, Province" required />
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-delivery">Delivery Location</label>
-            <input type="text" id="whbk-delivery" name="delivery" class="whbk-input whbk-lock-input" placeholder="City, Province" required />
+            <input type="text" id="whbk-delivery" name="delivery" class="whbk-input" placeholder="City, Province" required />
           </div>
         </div>
 
         <div class="whbk-row">
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-pickup-date">Preferred Pickup Date</label>
-            <input type="date" id="whbk-pickup-date" name="pickup_date" class="whbk-input whbk-lock-input" />
+            <input type="date" id="whbk-pickup-date" name="pickup_date" class="whbk-input" />
           </div>
           <div class="whbk-field">
             <label class="whbk-label" for="whbk-urgency">Urgency</label>
-            <select id="whbk-urgency" name="urgency" class="whbk-input whbk-select whbk-lock-input">
+            <select id="whbk-urgency" name="urgency" class="whbk-input whbk-select">
               <option value="Standard">Standard (3–7 days)</option>
               <option value="Priority">Priority (2–3 days)</option>
               <option value="Express">Express (24–48 hours)</option>
@@ -556,7 +549,7 @@
         <!-- ══════ SECTION: EXTRA ══════ -->
         <div class="whbk-field whbk-field--full">
           <label class="whbk-label" for="whbk-notes">Additional Notes (Optional)</label>
-          <textarea id="whbk-notes" name="notes" class="whbk-input whbk-textarea whbk-lock-input" placeholder="Special handling, access restrictions, reference numbers, or anything else we should know..." rows="3"></textarea>
+          <textarea id="whbk-notes" name="notes" class="whbk-input whbk-textarea" placeholder="Special handling, access restrictions, reference numbers, or anything else we should know..." rows="3"></textarea>
         </div>
 
         <!-- ══════ SUBMIT ══════ -->
@@ -597,9 +590,7 @@
   </div>
 
 </section>
-
-
- <!-- ============================================================
+<!-- ============================================================
   JOIN OUR TEAM — Career Application | Western Hawk
   Formspree endpoint: https://formspree.io/f/xeebraeo
   ============================================================ -->
@@ -611,7 +602,7 @@
   aria-label="Careers — Western Hawk"
   data-bg-landscape="images/carrer_section1.png"
   data-bg-portrait="images/phone.png"
-  data-locked="false"
+
 >
 
   <!-- Atmospheric layers -->
@@ -622,11 +613,6 @@
   <div class="whcr-corner whcr-corner--tl" aria-hidden="true"></div>
   <div class="whcr-corner whcr-corner--br" aria-hidden="true"></div>
   <div class="whcr-gold-bar" aria-hidden="true"></div>
-
-  <!-- LOCK INDICATOR -->
-  <div class="lock-indicator" style="display:none;">
-    👆 Swipe again to exit
-  </div>
 
   <!-- ═══════════════ CONTENT ═══════════════ -->
   <div class="section-content whcr-wrap">
@@ -664,22 +650,22 @@
         <div class="whcr-row">
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-name">Full Name</label>
-            <input type="text" id="whcr-name" name="name" class="whcr-input whcr-lock-input" placeholder="John Doe" required />
+            <input type="text" id="whcr-name" name="name" class="whcr-input" placeholder="John Doe" required />
           </div>
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-email">Email Address</label>
-            <input type="email" id="whcr-email" name="email" class="whcr-input whcr-lock-input" placeholder="you@email.com" required />
+            <input type="email" id="whcr-email" name="email" class="whcr-input" placeholder="you@email.com" required />
           </div>
         </div>
 
         <div class="whcr-row">
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-phone">Phone Number</label>
-            <input type="tel" id="whcr-phone" name="phone" class="whcr-input whcr-lock-input" placeholder="9350598958" required />
+            <input type="tel" id="whcr-phone" name="phone" class="whcr-input" placeholder="9350598958" required />
           </div>
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-location">Current Location</label>
-            <input type="text" id="whcr-location" name="location" class="whcr-input whcr-lock-input" placeholder="City, Province" required />
+            <input type="text" id="whcr-location" name="location" class="whcr-input" placeholder="City, Province" required />
           </div>
         </div>
 
@@ -688,7 +674,7 @@
         <div class="whcr-row">
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-role">Role You're Applying For</label>
-            <select id="whcr-role" name="role" class="whcr-input whcr-select whcr-lock-input" required>
+            <select id="whcr-role" name="role" class="whcr-input whcr-select" required>
               <option value="" disabled selected>Select role...</option>
               <option value="Long-Haul Driver">Long-Haul Driver (Cross-Country)</option>
               <option value="Regional Driver">Regional Driver</option>
@@ -704,7 +690,7 @@
           </div>
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-experience">Years of Experience</label>
-            <select id="whcr-experience" name="experience" class="whcr-input whcr-select whcr-lock-input" required>
+            <select id="whcr-experience" name="experience" class="whcr-input whcr-select" required>
               <option value="" disabled selected>Select experience...</option>
               <option value="0-1">Less than 1 year</option>
               <option value="1-3">1–3 years</option>
@@ -718,7 +704,7 @@
         <div class="whcr-row">
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-license">License Class</label>
-            <select id="whcr-license" name="license" class="whcr-input whcr-select whcr-lock-input">
+            <select id="whcr-license" name="license" class="whcr-input whcr-select">
               <option value="" disabled selected>Select license...</option>
               <option value="Class 1 / AZ">Class 1 / AZ (Full Commercial)</option>
               <option value="Class 3">Class 3</option>
@@ -729,7 +715,7 @@
           </div>
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-availability">Availability</label>
-            <select id="whcr-availability" name="availability" class="whcr-input whcr-select whcr-lock-input" required>
+            <select id="whcr-availability" name="availability" class="whcr-input whcr-select" required>
               <option value="" disabled selected>Select availability...</option>
               <option value="Immediate">Immediate Start</option>
               <option value="2 Weeks">2 Weeks Notice</option>
@@ -741,7 +727,7 @@
 
         <div class="whcr-field whcr-field--full">
           <label class="whcr-label" for="whcr-cover">Cover Letter / Why You?</label>
-          <textarea id="whcr-cover" name="cover_letter" class="whcr-input whcr-textarea whcr-lock-input" placeholder="Tell us why you'd be a great fit — your experience, skills, and what drives you..." rows="3"></textarea>
+          <textarea id="whcr-cover" name="cover_letter" class="whcr-input whcr-textarea" placeholder="Tell us why you'd be a great fit — your experience, skills, and what drives you..." rows="3"></textarea>
         </div>
 
         <!-- ══════ SECTION: PREFERENCES ══════ -->
@@ -749,7 +735,7 @@
         <div class="whcr-row whcr-row--triple">
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-route-pref">Route Preference</label>
-            <select id="whcr-route-pref" name="route_preference" class="whcr-input whcr-select whcr-lock-input">
+            <select id="whcr-route-pref" name="route_preference" class="whcr-input whcr-select">
               <option value="" disabled selected>Select...</option>
               <option value="Long-Haul">Long-Haul</option>
               <option value="Regional">Regional</option>
@@ -760,7 +746,7 @@
           </div>
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-shift">Shift Preference</label>
-            <select id="whcr-shift" name="shift" class="whcr-input whcr-select whcr-lock-input">
+            <select id="whcr-shift" name="shift" class="whcr-input whcr-select">
               <option value="" disabled selected>Select...</option>
               <option value="Day">Day Shift</option>
               <option value="Night">Night Shift</option>
@@ -770,7 +756,7 @@
           </div>
           <div class="whcr-field">
             <label class="whcr-label" for="whcr-relocate">Willing to Relocate?</label>
-            <select id="whcr-relocate" name="relocate" class="whcr-input whcr-select whcr-lock-input">
+            <select id="whcr-relocate" name="relocate" class="whcr-input whcr-select">
               <option value="" disabled selected>Select...</option>
               <option value="Yes">Yes</option>
               <option value="No">No</option>
@@ -782,7 +768,7 @@
         <!-- ══════ SECTION: REFERRAL ══════ -->
         <div class="whcr-field whcr-field--full">
           <label class="whcr-label" for="whcr-referral">How Did You Hear About Us?</label>
-          <input type="text" id="whcr-referral" name="referral" class="whcr-input whcr-lock-input" placeholder="e.g. Indeed, LinkedIn, Referral, Google..." />
+          <input type="text" id="whcr-referral" name="referral" class="whcr-input" placeholder="e.g. Indeed, LinkedIn, Referral, Google..." />
         </div>
 
         <!-- ══════ SUBMIT ══════ -->
@@ -822,7 +808,7 @@
 
   </div>
 
-</section>
+</section> 
    <!-- ============================================================
   CTA + FOOTER SECTION — Full Screen CTA + Scrollable Footer
   Drop as the last .panel inside #scroll-container

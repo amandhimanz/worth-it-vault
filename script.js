@@ -41,17 +41,6 @@
  *     as before — it just no longer needs a specially-timed
  *     second touch to confirm.
  *
- *  2. CROSS-BROWSER TOUCH HARDENING
- *     Added a `touchcancel` listener — iOS Control Center /
- *     Notification Center swipes and Android's edge back-gesture
- *     both cancel a touch instead of ending it normally, which
- *     without this left `startY` stranded for that panel. Also
- *     clamped the scrollTop reads used in the pull calculation to
- *     the valid [0, range] span, since iOS Safari can report a
- *     brief rubber-band overshoot past 0/max mid-bounce that would
- *     otherwise skew the measurement by a few stray px right as the
- *     finger lifts.
- *
  * Everything else — PC wheel easing, panel map, paste zones,
  * dot-nav, keyboard, loader and drift guard — is unchanged.
  * Full v5→v6 history kept below for reference.
@@ -99,24 +88,33 @@
 (function () {
   'use strict';
 
- var CFG = {
-    MOVE_COOLDOWN       : 500,   // ms — section transition lock duration
-    EDGE_TOLERANCE      : 8,     // px — how close to edge counts as "at boundary"
-    SWIPE_THRESHOLD     : 40,    // px — minimum swipe for fit-viewport panels (no inner scroll)
+  /* ============================================================
+     ❶  CONSTANTS
+  ============================================================ */
+  var CFG = {
+    MOVE_COOLDOWN       : 550,   // ms — section transition lock duration (was 700 — felt sluggish)
+    EDGE_TOLERANCE      : 6,     // px — how close to edge counts as "at boundary"
+    SWIPE_THRESHOLD     : 45,    // px — minimum swipe for fit-viewport panels (no inner scroll)
     OVERLAY_DURATION    : 150,   // ms — flash overlay visible time
 
     // PC inner-scroll easing (wheel-driven, JS-owned rAF loop)
-    WHEEL_STEP_GAIN      : 0.42,
-    WHEEL_FRICTION       : 0.88,
-    WHEEL_MIN_VELOCITY   : 0.05,
-    WHEEL_MAX_VELOCITY   : 34,
-    WHEEL_ACCUM_FOR_SNAP : 70,
-    WHEEL_BOUNDARY_DECAY : 300,
+    WHEEL_STEP_GAIN      : 0.42,  // how much of each wheel delta becomes added velocity (higher = punchier response)
+    WHEEL_FRICTION       : 0.88,  // velocity decay per animation frame (lower = settles faster, less "heavy" drift)
+    WHEEL_MIN_VELOCITY   : 0.05,  // px/frame — below this, the animation loop stops itself
+    WHEEL_MAX_VELOCITY   : 34,    // px/frame cap — keeps one aggressive wheel tick from launching too far
+    WHEEL_ACCUM_FOR_SNAP : 70,    // px of "pushing past the edge" needed before section changes (was 90 — took too long to trigger)
+    WHEEL_BOUNDARY_DECAY : 300,   // ms — reset boundary-push accumulator if wheel goes idle
 
-    // UPDATED TOUCH VALUES — lower thresholds for better responsiveness
-    TOUCH_PULL_THRESHOLD       : 15,   // Reduced from 18
-    TOUCH_FLICK_VELOCITY       : 0.40, // Reduced from 0.45
-    TOUCH_FLICK_PULL_THRESHOLD : 6,    // Reduced from 8
+    // Touch: on touchend we compare how far the finger travelled to how
+    // far the content actually scrolled during that same touch. Once an
+    // edge is hit the content can't absorb any more, so that gap
+    // ("pull") is what confirms intent to leave the section — checked
+    // live on every touch, no settle wait and no requirement that it be
+    // a new, separate touch. A fast flick needs less pull to confirm,
+    // since speed alone already signals intent.
+    TOUCH_PULL_THRESHOLD       : 18,   // px of "un-absorbable" drag needed at the edge to snap (was 24)
+    TOUCH_FLICK_VELOCITY       : 0.45, // px/ms — drags at or above this speed count as a flick (was 0.5)
+    TOUCH_FLICK_PULL_THRESHOLD : 8,    // px of pull needed at the edge when it's a fast flick (was 10)
   };
   /* ============================================================
      ❷  DEVICE DETECTION
@@ -192,6 +190,7 @@
     setTimeout(assignBackgrounds, 200);
   });
 
+
   /* ============================================================
      ❻  INNER-SCROLL HELPERS
   ============================================================ */
@@ -212,38 +211,21 @@
     return r > 0 ? r : 0;
   }
 
-  /* ============================================================
-     ENHANCED EDGE DETECTION — FIXES MOBILE GETTING STUCK
-  ============================================================ */
-  function getEdgeState(idx) {
-    var c = getContent(idx);
-    if (!c) return { atTop: true, atBottom: true, range: 0, scrollTop: 0, isScrollable: false };
-    
-    var range = c.scrollHeight - c.clientHeight;
-    var scrollTop = c.scrollTop;
-    var tolerance = CFG.EDGE_TOLERANCE;
-    
-    return {
-      atTop: scrollTop <= tolerance,
-      atBottom: scrollTop >= (range - tolerance),
-      range: range,
-      scrollTop: scrollTop,
-      isScrollable: range > tolerance
-    };
-  }
-
   function isScrollable(idx) {
     return scrollRange(idx) > CFG.EDGE_TOLERANCE;
   }
 
-  // Updated isAtTop using getEdgeState
   function isAtTop(idx) {
-    return getEdgeState(idx).atTop;
+    var c = getContent(idx);
+    if (!c) return true;
+    return c.scrollTop <= CFG.EDGE_TOLERANCE;
   }
 
-  // Updated isAtBottom using getEdgeState
   function isAtBottom(idx) {
-    return getEdgeState(idx).atBottom;
+    var c = getContent(idx);
+    if (!c) return true;
+    if (!isScrollable(idx)) return true;
+    return c.scrollTop >= (c.scrollHeight - c.clientHeight - CFG.EDGE_TOLERANCE);
   }
 
   /** PC: should this panel use the JS-eased inner-scroll system? */
@@ -263,6 +245,7 @@
     if (st.raf) { cancelAnimationFrame(st.raf); st.raf = null; }
     if (st._resetTouchRest) st._resetTouchRest();
   }
+
 
   /* ============================================================
      ❼  CORE NAVIGATION
@@ -452,19 +435,43 @@
     w.lockTimer = setTimeout(function () { w.locked = false; }, CFG.MOVE_COOLDOWN);
   }
 
+
   /* ============================================================
-     ❿  TOUCH — ADVANCED BOUNDARY-AWARE SINGLE SWIPE
+     ❿  TOUCH — BOUNDARY-AWARE SINGLE SWIPE
      ──────────────────────────────────────────────────────────
-     FIX: Uses touchstart position + finger travel distance
-     directly, instead of relying on unreliable scrollTop at
-     touchend (which gets polluted by momentum/rubber-banding).
-     
-     KEY IMPROVEMENTS:
-     1. Tracks edge state at touch START, not END
-     2. Monitors scroll delta during touch via touchmove
-     3. Uses finger distance directly (more reliable)
-     4. Handles "hit edge during scroll" scenario
-     5. Lower thresholds for better responsiveness
+     The browser scrolls .section-content natively on touch —
+     that's already smooth (native momentum), so we never touch
+     scrollTop ourselves here. What we control is WHEN reaching
+     a boundary is allowed to advance to the next section — and
+     that's now decided on the SAME touch that reaches it, live,
+     with no settle wait and no requirement that it be a second,
+     separate touch.
+
+     On touchend we compare two distances covering the same touch:
+       • dY           — how far the finger actually travelled
+       • actualScroll — how far the content itself scrolled
+
+     While there's room left to scroll, those two stay roughly
+     equal. Once the content hits the top/bottom edge it can't
+     absorb any more of the drag, so the gap between them — the
+     PULL — starts growing in real time. Once PULL crosses
+     TOUCH_PULL_THRESHOLD while sitting at the relevant edge, that
+     single touch snaps immediately on release. A fast flick needs
+     less pull (TOUCH_FLICK_PULL_THRESHOLD) since speed alone
+     already signals intent.
+
+     This keeps the important guarantee from before — a normal
+     reading swipe that merely reaches the edge still just comes
+     to rest, it doesn't yank you into the next section — but
+     drops the artificial two-touch requirement that made every
+     transition feel like it needed a "warm-up" swipe first. It
+     also fixes the up-direction specifically: PULL is measured
+     fresh against this touch's own scroll delta, not a cached
+     flag that only got set by a previous scroll event, so
+     swiping back up the instant you arrive at a fresh panel
+     (scrollTop already 0, nothing left to absorb the drag) works
+     on the very first attempt — same as reaching the bottom
+     after reading does.
   ============================================================ */
   var touchLocked = false;
   function _lockTouchBriefly() {
@@ -475,211 +482,78 @@
   function initTouchHandlers() {
 
     panels.forEach(function (panel, idx) {
-      // Fall back to the panel itself if a .section-content wrapper is missing
-      var c = panel.querySelector('.section-content') || panel;
+      var c = panel.querySelector('.section-content');
       if (!c) return;
 
-      // ── STATE per touch ──
-      var touchState = {
-        startY: null,
-        startX: null,
-        startScrollTop: 0,
-        startTime: 0,
-        maxScrollDelta: 0,
-        minScrollDelta: 0,
-        touchDirection: null,
-        isAtEdgeOnStart: false,
-        edgeType: null, // 'top' or 'bottom'
-      };
-
-      function resetTouchState() {
-        touchState.startY = null;
-        touchState.startX = null;
-        touchState.startScrollTop = 0;
-        touchState.startTime = 0;
-        touchState.maxScrollDelta = 0;
-        touchState.minScrollDelta = 0;
-        touchState.touchDirection = null;
-        touchState.isAtEdgeOnStart = false;
-        touchState.edgeType = null;
-      }
+      var startY        = null;  // finger clientY at touchstart
+      var scrollAtStart = 0;     // c.scrollTop at touchstart
+      var startTime     = 0;     // e.timeStamp at touchstart
 
       function onStart(e) {
         if (S.moving || touchLocked || idx !== S.current) return;
-        if (e.touches.length > 1) return;
-
-        resetTouchState();
-
-        touchState.startY = e.touches[0].clientY;
-        touchState.startX = e.touches[0].clientX;
-        touchState.startScrollTop = c.scrollTop;
-        touchState.startTime = e.timeStamp;
-
-        // ── DETECT if we're at an edge on touch START ──
-        var range = c.scrollHeight - c.clientHeight;
-        var atTop = c.scrollTop <= CFG.EDGE_TOLERANCE;
-        var atBottom = c.scrollTop >= (range - CFG.EDGE_TOLERANCE);
-
-        if (atTop && idx > 0) {
-          touchState.isAtEdgeOnStart = true;
-          touchState.edgeType = 'top';
-        } else if (atBottom && idx < TOTAL - 1) {
-          touchState.isAtEdgeOnStart = true;
-          touchState.edgeType = 'bottom';
-        } else {
-          touchState.isAtEdgeOnStart = false;
-          touchState.edgeType = null;
-        }
-      }
-
-      function onMove(e) {
-        if (touchState.startY === null) return;
-        if (S.moving || touchLocked || idx !== S.current) return;
-
-        var currentY = e.touches[0].clientY;
-        var deltaY = touchState.startY - currentY; // positive = pulling up
-
-        // Track max/min scroll delta during the touch
-        var currentScrollDelta = c.scrollTop - touchState.startScrollTop;
-        if (currentScrollDelta > touchState.maxScrollDelta) {
-          touchState.maxScrollDelta = currentScrollDelta;
-        }
-        if (currentScrollDelta < touchState.minScrollDelta) {
-          touchState.minScrollDelta = currentScrollDelta;
-        }
-
-        // Track direction
-        if (Math.abs(deltaY) > 5) {
-          touchState.touchDirection = deltaY > 0 ? 'up' : 'down';
-        }
-      }
-
-      function onCancel() {
-        resetTouchState();
+        if (e.touches.length > 1) return; // ignore pinch/multi-touch
+        startY        = e.touches[0].clientY;
+        scrollAtStart = c.scrollTop;
+        startTime     = e.timeStamp;
       }
 
       function onEnd(e) {
-        // ── EARLY EXITS ──
-        if (touchState.startY === null) return;
-        if (S.moving || touchLocked || idx !== S.current) {
-          resetTouchState();
-          return;
-        }
+        if (startY === null) return;
+        var fromY      = startY;
+        var fromScroll = scrollAtStart;
+        var fromTime   = startTime;
+        startY = null;
+        if (S.moving || touchLocked || idx !== S.current) return;
 
         var endY = e.changedTouches[0].clientY;
-        var endX = e.changedTouches[0].clientX;
-        var dY = touchState.startY - endY; // positive = finger moved up
-        var dX = touchState.startX - endX;
-        var elapsed = Math.max(1, e.timeStamp - touchState.startTime);
-        var velocity = Math.abs(dY) / elapsed; // px/ms
+        var dY   = fromY - endY; // positive = dragged up = wants next section
 
-        // ── REJECT HORIZONTAL SWIPES ──
-        if (Math.abs(dX) > Math.abs(dY)) {
-          resetTouchState();
-          return;
-        }
-
-        // ── CASE 1: NO INNER SCROLL (Hero, etc.) ──
+        // ── Sections with no inner scroll at all (e.g. Hero) ──
+        // Plain swipe-to-change-section, single motion.
         if (!isScrollable(idx)) {
-          if (Math.abs(dY) < CFG.SWIPE_THRESHOLD) {
-            resetTouchState();
-            return;
-          }
+          if (Math.abs(dY) < CFG.SWIPE_THRESHOLD) return;
           var dir = dY > 0 ? 1 : -1;
-          if (dir === 1 && idx < TOTAL - 1) {
-            if (moveTo(1)) _lockTouchBriefly();
-          } else if (dir === -1 && idx > 0) {
-            if (moveTo(-1)) _lockTouchBriefly();
-          }
-          resetTouchState();
+          if (dir === 1 && idx < TOTAL - 1) { if (moveTo(1)) _lockTouchBriefly(); }
+          else if (dir === -1 && idx > 0)   { if (moveTo(-1)) _lockTouchBriefly(); }
           return;
         }
 
-        // ── CASE 2: SCROLLABLE SECTIONS ──
-        // The key insight: We use the touchstart state to know
-        // if we started at an edge. If we did, and the finger
-        // pulled outward, we can change sections.
-        // If we didn't start at an edge, this is a normal scroll.
+        // ── Scrollable sections: PULL = finger travel the content
+        //    couldn't absorb. Only grows once an edge is hit. ──
+        var actualScroll = c.scrollTop - fromScroll;
+        var pull         = Math.abs(dY) - Math.abs(actualScroll);
 
-        var fingerDistance = Math.abs(dY);
-        var isFlick = velocity >= CFG.TOUCH_FLICK_VELOCITY;
-        var neededPull = isFlick ? CFG.TOUCH_FLICK_PULL_THRESHOLD : CFG.TOUCH_PULL_THRESHOLD;
+        var elapsed  = Math.max(1, e.timeStamp - fromTime);
+        var velocity = Math.abs(dY) / elapsed; // px/ms
+        var needed   = velocity >= CFG.TOUCH_FLICK_VELOCITY
+          ? CFG.TOUCH_FLICK_PULL_THRESHOLD
+          : CFG.TOUCH_PULL_THRESHOLD;
 
-        // ── CHECK: Started at top, pulling down (to go UP) ──
-        if (touchState.isAtEdgeOnStart && touchState.edgeType === 'top' && dY < 0 && idx > 0) {
-          // Finger moved down = pulling from top edge
-          if (fingerDistance >= neededPull) {
-            if (moveTo(-1)) _lockTouchBriefly();
-            resetTouchState();
-            return;
-          }
-          resetTouchState();
+        if (pull < needed) return;
+
+        if (dY > 0 && isAtBottom(idx) && idx < TOTAL - 1) {
+          if (moveTo(1)) _lockTouchBriefly();
           return;
         }
-
-        // ── CHECK: Started at bottom, pulling up (to go DOWN) ──
-        if (touchState.isAtEdgeOnStart && touchState.edgeType === 'bottom' && dY > 0 && idx < TOTAL - 1) {
-          // Finger moved up = pulling from bottom edge
-          if (fingerDistance >= neededPull) {
-            if (moveTo(1)) _lockTouchBriefly();
-            resetTouchState();
-            return;
-          }
-          resetTouchState();
-          return;
+        if (dY < 0 && isAtTop(idx) && idx > 0) {
+          if (moveTo(-1)) _lockTouchBriefly();
         }
-
-        // ── NOT AT EDGE ON START: Normal scroll ──
-        // BUT we also need to detect when momentum carries us to an edge
-        // and the user tries to pull further on the SAME touch.
-        // For this, we check if during the touch, we hit an edge,
-        // and then continued pulling outward.
-
-        var range = c.scrollHeight - c.clientHeight;
-        var hitTopDuringTouch = touchState.minScrollDelta <= -CFG.EDGE_TOLERANCE && 
-                                (touchState.startScrollTop + touchState.minScrollDelta) <= CFG.EDGE_TOLERANCE;
-        var hitBottomDuringTouch = touchState.maxScrollDelta >= CFG.EDGE_TOLERANCE && 
-                                   (touchState.startScrollTop + touchState.maxScrollDelta) >= (range - CFG.EDGE_TOLERANCE);
-
-        // ── HIT TOP DURING TOUCH, now pulling down ──
-        if (hitTopDuringTouch && dY < 0 && idx > 0) {
-          // We started not at top, hit it during scroll, and now pulling outward
-          if (fingerDistance >= neededPull) {
-            if (moveTo(-1)) _lockTouchBriefly();
-            resetTouchState();
-            return;
-          }
-        }
-
-        // ── HIT BOTTOM DURING TOUCH, now pulling up ──
-        if (hitBottomDuringTouch && dY > 0 && idx < TOTAL - 1) {
-          if (fingerDistance >= neededPull) {
-            if (moveTo(1)) _lockTouchBriefly();
-            resetTouchState();
-            return;
-          }
-        }
-
-        // ── DEFAULT: Let the browser handle normal scrolling ──
-        resetTouchState();
       }
 
-      // ── ATTACH LISTENERS ──
       c.addEventListener('touchstart', onStart, { passive: true });
-      c.addEventListener('touchmove', onMove, { passive: true });
-      c.addEventListener('touchend', onEnd, { passive: true });
-      c.addEventListener('touchcancel', onCancel, { passive: true });
+      c.addEventListener('touchend',   onEnd,   { passive: true });
 
       S.panelState[idx]._touchCleanup = function () {
         c.removeEventListener('touchstart', onStart);
-        c.removeEventListener('touchmove', onMove);
         c.removeEventListener('touchend', onEnd);
-        c.removeEventListener('touchcancel', onCancel);
       };
 
-      S.panelState[idx]._resetTouchRest = resetTouchState;
+      S.panelState[idx]._resetTouchRest = function () {
+        startY = null;
+      };
     });
   }
+
 
   /* ============================================================
      ⓬  PC — HYBRID SWIPE (trackpad tablets, Surface, etc.)
@@ -753,16 +627,10 @@
   /* ============================================================
      ⓮  DOT NAVIGATION
   ============================================================ */
-  // Update DOT_LABELS to match your actual sections
-var DOT_LABELS = [
-  'HOME',          // 0: #section-landing
-  'ABOUT',         // 1: #section-about  
-  'SERVICES',      // 2: #section-services
-  'REVIEWS',       // 3: #section-reviews
-  'COVERAGE',      // 4: #section-coverage
-  'FAQ',           // 5: #section-faq
-  'CONTACT',       // 6: #footer
-];
+  var DOT_LABELS = [
+    'HOME', 'PROCESS', 'SHIPMENT', 'CARRER', 'FOOTER',
+  ];
+
   function updateDots(index) {
     if (!dotList) return;
     dotList.querySelectorAll('li').forEach(function (li, i) {
@@ -910,15 +778,7 @@ var DOT_LABELS = [
   if (!nav || !navLinks) return;
 
   /* ── Config ── */
-  var HERO_SECTION_IDS = [
-  'section-landing', 
-  'section-about', 
-  'section-services', 
-  'section-reviews', 
-  'section-coverage', 
-  'section-faq', 
-  'footer'
-];
+  var HERO_SECTION_IDS = ['section-landing', 'section-landing-bc', 'section-booking', 'section-contact-form'];
   var MOBILE_BREAKPOINT = 860;
   var HOVER_ZONE_HEIGHT = 80;
   var PILL_AUTOSHOW_MS = 3000;
@@ -969,12 +829,16 @@ var DOT_LABELS = [
     return hashIndex >= 0 ? href.substring(hashIndex) : '';
   }
 
-  var HOME_URL = 'index.html';
-
   if (brand) {
     brand.addEventListener('click', function (e) {
       e.preventDefault();
-      window.location.href = HOME_URL;
+      var homeUrl = 'index.html';
+      if (window.location.pathname.includes('MAIN_SCROLL')) {
+        homeUrl = '../PROJECT-1-TG/index.html';
+      } else if (window.location.pathname.includes('page-3-tg')) {
+        homeUrl = '../PROJECT-1-TG/index.html';
+      }
+      window.location.href = homeUrl;
     });
   }
 
@@ -1044,15 +908,17 @@ var DOT_LABELS = [
       
       if (!isDifferentPage(href) && navKey) {
         e.preventDefault();
-       var sectionMap = {
-  'landing': 'section-landing',
-  'about': 'section-about',
-  'services': 'section-services',
-  'reviews': 'section-reviews',
-  'coverage': 'section-coverage',
-  'faq': 'section-faq',
-  'footer': 'footer'
-};
+        var sectionMap = {
+          'landing': 'section-landing',
+          'landing-bc': 'section-landing-bc',
+          'contact-form': 'section-contact-form',
+          'email': 'section-email',
+          'booking': 'section-booking',
+          'careers': 'section-careers',
+          'process': 'section-process',
+          'office': 'section-office',
+          'footer': 'footer'
+        };
         var targetId = sectionMap[navKey];
         if (!targetId) return;
         var target = document.getElementById(targetId);
@@ -1445,32 +1311,23 @@ var DOT_LABELS = [
   }
 
   // ── PASTE HERO (#section-1) BELOW ──
-
-
-
-
-
-
-
-// ── PASTE SECTION-HERO BELOW ──
+// ── PASTE SECTION-LANDING-BC BELOW ──
+// ── PASTE SECTION-LANDING-BC BELOW ──
 
 (function () {
   'use strict';
 
-  var section = document.getElementById('section-landing');
-  if (!section) {
-    console.warn('[WH Hero] #section-landing not found');
-    return;
-  }
+  var section = document.getElementById('section-landing-bc');
+  if (!section) return;
 
-  var content = document.getElementById('hero-content');
-  var scrollInd = document.getElementById('hero-scroll-ind');
+  var content = document.getElementById('whbc-content');
+  var scrollInd = document.getElementById('whbc-scroll-ind');
 
   /* ── Reveal content on load ── */
   if (content) {
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        content.classList.add('h-content--visible');
+        content.classList.add('whbc-content--visible');
       });
     });
   }
@@ -1481,7 +1338,7 @@ var DOT_LABELS = [
     function hideInd() {
       if (hidden) return;
       hidden = true;
-      scrollInd.classList.add('h-scroll-ind--hidden');
+      scrollInd.classList.add('whbc-scroll-ind--hidden');
     }
     window.addEventListener('wheel', hideInd, { once: true, passive: true });
     window.addEventListener('touchmove', hideInd, { once: true, passive: true });
@@ -1489,6 +1346,46 @@ var DOT_LABELS = [
       if ([' ', 'ArrowDown', 'ArrowUp', 'PageDown', 'PageUp'].indexOf(e.key) > -1) hideInd();
     }, { once: true });
     setTimeout(hideInd, 9000);
+  }
+
+  /* ── Cards navigation ── */
+  var bookCard = section.querySelector('.whbc-card--gold');
+  var careerCard = section.querySelector('.whbc-card--dark');
+
+  // Section mapping
+  var SECTION_MAP = {
+    'booking': 2,    // #section-booking is the 3rd panel (0-indexed)
+    'careers': 3     // #section-careers is the 4th panel (0-indexed)
+  };
+
+  function goToSection(sectionKey) {
+    var targetIndex = SECTION_MAP[sectionKey];
+    if (targetIndex === undefined) return;
+
+    if (typeof window.voidGoToSection === 'function') {
+      window.voidGoToSection(targetIndex);
+    } else {
+      // Fallback: find the panel and scroll
+      var panels = Array.from(document.querySelectorAll('.panel'));
+      var targetPanel = panels[targetIndex];
+      if (targetPanel) {
+        targetPanel.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }
+
+  if (bookCard) {
+    bookCard.addEventListener('click', function (e) {
+      e.preventDefault();
+      goToSection('booking');
+    });
+  }
+
+  if (careerCard) {
+    careerCard.addEventListener('click', function (e) {
+      e.preventDefault();
+      goToSection('careers');
+    });
   }
 
   /* ── Entrance / Exit ── */
@@ -1528,1295 +1425,339 @@ var DOT_LABELS = [
 
 })();
 
-// ── END SECTION-HERO ──
+// ── END SECTION-LANDING-BC ──
+// ── END SECTION-LANDING-BC ──
 
-// ── PASTE SECTION-ABOUT BELOW ──
+  // ── END HERO (#section-1) ──
 
-(function () {
-  'use strict';
-
-  var section = document.querySelector('.whs-services');
-  if (!section) return;
-
-  /* ── DETECT TOUCH DEVICE ── */
-  var IS_TOUCH = (
-    ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
-    window.matchMedia('(hover: none) and (pointer: coarse)').matches
-  );
-
-  /* ── CONFIG ── */
-  var CONFIG = {
-    // Desktop values
-    DESKTOP: {
-      counterDuration: 1000,
-      enterDelay: 520,
-      tolerance: 80,
-    },
-    // Mobile values (faster)
-    MOBILE: {
-      counterDuration: 600,
-      enterDelay: 200,
-      tolerance: 100,
-    }
-  };
-
-  var settings = IS_TOUCH ? CONFIG.MOBILE : CONFIG.DESKTOP;
-
-  /* ── Easing ── */
-  function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-  }
-
-  function easeOutQuart(t) {
-    return 1 - Math.pow(1 - t, 4);
-  }
-
-  /* ── Counter animation ── */
-  function animateCounter(el, target, duration) {
-    var start = performance.now();
-    var suffix = el.dataset.suffix || '';
-    var easing = IS_TOUCH ? easeOutQuart : easeOutCubic;
-
-    function tick(now) {
-      var progress = Math.min((now - start) / duration, 1);
-      var val = Math.round(easing(progress) * target);
-      el.textContent = val.toLocaleString() + suffix;
-      if (progress < 1) {
-        requestAnimationFrame(tick);
-      }
-    }
-    requestAnimationFrame(tick);
-  }
-
-  function runCounters() {
-    section.querySelectorAll('.whs-proof__value').forEach(function (el) {
-      var target = parseInt(el.dataset.target, 10);
-      if (isNaN(target)) return;
-      animateCounter(el, target, settings.counterDuration);
-    });
-  }
-
-  function resetCounters() {
-    section.querySelectorAll('.whs-proof__value').forEach(function (el) {
-      var suffix = el.dataset.suffix || '';
-      el.textContent = '0' + suffix;
-    });
-  }
-
-  /* ── State ── */
-  var isActive = false;
-  var enterTimer = null;
-  var exitTimer = null;
-
-  /* ── Entrance / exit ── */
-  function enter() {
-    if (isActive) return;
-    isActive = true;
-    clearTimeout(enterTimer);
-    clearTimeout(exitTimer);
-
-    section.classList.add('is-visible');
-
-    // Run counters after a short delay
-    enterTimer = setTimeout(function () {
-      runCounters();
-      enterTimer = null;
-    }, settings.enterDelay);
-  }
-
-  function exit() {
-    if (!isActive) return;
-    isActive = false;
-    clearTimeout(enterTimer);
-    clearTimeout(exitTimer);
-
-    section.classList.remove('is-visible');
-
-    // Reset counters with a small delay to allow animation to finish
-    exitTimer = setTimeout(function () {
-      resetCounters();
-      exitTimer = null;
-    }, 300);
-  }
-
-  /* ── Detection using IntersectionObserver (preferred) ── */
-  var observer = null;
-
-  function initObserver() {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-
-    if ('IntersectionObserver' in window) {
-      observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            enter();
-          } else {
-            exit();
-          }
-        });
-      }, {
-        threshold: 0.15,
-        rootMargin: '0px 0px -10% 0px'
-      });
-
-      observer.observe(section);
-    } else {
-      // Fallback to scroll detection
-      initScrollDetection();
-    }
-  }
-
-  /* ── Fallback: Scroll detection ── */
-  function initScrollDetection() {
-    var scrollContainer = document.getElementById('scroll-container');
-    if (!scrollContainer) return;
-
-    var TOLERANCE = settings.tolerance;
-    var checkTimer = null;
-
-    function checkActive() {
-      if (!section) return;
-      var diff = Math.abs(scrollContainer.scrollTop - section.offsetTop);
-      var active = diff <= TOLERANCE;
-
-      if (active && !isActive) {
-        enter();
-      } else if (!active && isActive) {
-        exit();
-      }
-    }
-
-    // Throttled scroll handler
-    function onScroll() {
-      if (checkTimer) return;
-      checkTimer = requestAnimationFrame(function () {
-        checkActive();
-        checkTimer = null;
-      });
-    }
-
-    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
-
-    // Also check on resize
-    var resizeTimer;
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        checkActive();
-      }, 250);
-    });
-
-    // Initial check
-    setTimeout(checkActive, 100);
-  }
-
-  /* ── Patch engine's voidGoToSection ── */
-  (function patchGoTo() {
-    var attempts = 0;
-    var maxAttempts = 30;
-    var pollInterval = 80;
-
-    function tryPatch() {
-      attempts++;
-      if (typeof window.voidGoToSection === 'function') {
-        var orig = window.voidGoToSection;
-        window.voidGoToSection = function (idx) {
-          var panels = Array.from(document.querySelectorAll('.panel'));
-          var ourIdx = panels.indexOf(section);
-
-          // If we're leaving this section, exit
-          if (idx !== ourIdx && isActive) {
-            exit();
-          }
-
-          // Call original
-          orig(idx);
-
-          // If we're entering this section, enter
-          if (idx === ourIdx) {
-            // Small delay to let the panel settle
-            setTimeout(function () {
-              enter();
-            }, 60);
-          }
-        };
-        clearInterval(poll);
-        return true;
-      }
-
-      if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        return false;
-      }
-      return false;
-    }
-
-    var poll = setInterval(tryPatch, pollInterval);
-  }());
-
-  /* ── Load safety ── */
-  function onLoad() {
-    // Small delay to ensure everything is rendered
-    setTimeout(function () {
-      if (observer) {
-        // Force a check
-        observer.disconnect();
-        observer.observe(section);
-      }
-      // If using scroll detection, it's already initialized
-    }, 100);
-  }
-
-  if (document.readyState === 'complete') {
-    onLoad();
-  } else {
-    window.addEventListener('load', onLoad);
-  }
-
-  /* ── Init ── */
-  initObserver();
-
-  /* ── Cleanup on page hide ── */
-  window.addEventListener('pagehide', function () {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-    clearTimeout(enterTimer);
-    clearTimeout(exitTimer);
-  });
-
-}());
-
-// ── END SECTION-ABOUT ──
-
-// ── PASTE SECTION-SERVICES BELOW ──
+  // ── PASTE SECTION-2 (#section-2) BELOW ──
+// ── PASTE SECTION-PROCESS BELOW ──
 
 (function () {
   'use strict';
 
-  var section = document.getElementById('section-services');
+  var section = document.getElementById('section-process');
   if (!section) return;
 
-  var inner     = section.querySelector('.section-content');
-  var routeLine = section.querySelector('.ab-route-line');
-  var cards     = Array.from(section.querySelectorAll('.ab-card'));
-  var stats     = Array.from(section.querySelectorAll('.ab-stats__item'));
-
-  if (!inner) {
-    console.warn('[Services] .section-content not found inside #section-services');
-    return;
-  }
-
-  /* ── CONFIG ── */
-  var CFG_SERVICES = {
-    IN_DURATION : 0.85,
-    IN_STAGGER  : 0.10,
-    OUT_DURATION: 0.38,
-    EASING_IN   : 'cubic-bezier(0.19, 1, 0.22, 1)',
-    EASING_OUT  : 'cubic-bezier(0.55, 0, 1, 0.45)',
-    SNAP_TOLERANCE : 30,
-  };
-
-  /* ── STATE ── */
-  var _isActive    = false;
-  var _inTimers    = [];
-  var _outTimer    = null;
-
-  /* ── HELPERS ── */
-  function clearAllTimers() {
-    _inTimers.forEach(function (t) { clearTimeout(t); });
-    _inTimers = [];
-    if (_outTimer) { clearTimeout(_outTimer); _outTimer = null; }
-  }
-
-  /* ── RESET all cards to hidden ── */
-  function resetToHidden() {
-    cards.forEach(function (card) {
-      card.style.transition = 'none';
-      card.classList.remove('ab-card--in');
-
-      if (card.classList.contains('ab-card--left')) {
-        card.style.opacity   = '0';
-        card.style.transform = 'translateX(-90px) scale(0.96)';
-      } else {
-        card.style.opacity   = '0';
-        card.style.transform = 'translateX(90px) scale(0.96)';
-      }
-      card.style.filter = 'blur(10px)';
-      void card.offsetHeight;
-    });
-
-    if (routeLine) {
-      routeLine.style.transition = 'none';
-      routeLine.classList.remove('ab-route-line--active');
-      routeLine.style.height  = '0';
-      routeLine.style.opacity = '0';
-      void routeLine.offsetHeight;
-    }
-
-    stats.forEach(function (s) {
-      s.style.transition = 'none';
-      s.style.opacity    = '0';
-      s.style.transform  = 'translateY(20px)';
-      void s.offsetHeight;
-    });
-  }
-
-  /* ── ANIMATE IN (reveal cards as user scrolls) ── */
-  function animateIn() {
-    clearAllTimers();
-    resetToHidden();
-
-    var _revealed = [];
-    cards.forEach(function () { _revealed.push(false); });
-    var _revealedStats = false;
-
-    function revealCard(card) {
-      card.style.transition = [
-        'opacity '   + CFG_SERVICES.IN_DURATION + 's ' + CFG_SERVICES.EASING_IN,
-        'transform ' + CFG_SERVICES.IN_DURATION + 's ' + CFG_SERVICES.EASING_IN,
-        'filter '    + CFG_SERVICES.IN_DURATION + 's ' + CFG_SERVICES.EASING_IN,
-      ].join(', ');
-      card.style.opacity   = '1';
-      card.style.transform = 'translateX(0) scale(1)';
-      card.style.filter    = 'blur(0)';
-      card.classList.add('ab-card--in');
-    }
-
-    function checkCardsInView() {
-      var scrollTop = inner.scrollTop;
-      var clientHeight = inner.clientHeight;
-      var allDone = true;
-
-      var triggerLine = scrollTop + clientHeight * 0.85;
-
-      cards.forEach(function (card, i) {
-        if (_revealed[i]) return;
-
-        var cardRect = card.getBoundingClientRect();
-        var innerRect = inner.getBoundingClientRect();
-        var cardRelativeTop = cardRect.top - innerRect.top + scrollTop;
-
-        if (cardRelativeTop < triggerLine) {
-          _revealed[i] = true;
-          revealCard(card);
-        } else {
-          allDone = false;
-        }
-      });
-
-      if (_revealed[0] && routeLine && !routeLine.classList.contains('ab-route-line--active')) {
-        var rt = setTimeout(function () {
-          routeLine.style.transition = 'height 1.3s ' + CFG_SERVICES.EASING_IN + ', opacity 0.8s ease';
-          routeLine.classList.add('ab-route-line--active');
-        }, 200);
-        _inTimers.push(rt);
-      }
-
-      if (allDone && !_revealedStats) {
-        _revealedStats = true;
-        stats.forEach(function (s, i) {
-          var st = setTimeout(function () {
-            s.style.transition = 'opacity 0.75s ' + CFG_SERVICES.EASING_IN + ', transform 0.75s ' + CFG_SERVICES.EASING_IN;
-            s.style.opacity    = '1';
-            s.style.transform  = 'translateY(0)';
-          }, (0.25 + i * 0.08) * 1000);
-          _inTimers.push(st);
-        });
-        inner.removeEventListener('scroll', onInnerScroll);
-      }
-    }
-
-    function onInnerScroll() {
-      checkCardsInView();
-    }
-
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        inner.addEventListener('scroll', onInnerScroll, { passive: true });
-        checkCardsInView();
-      });
-    });
-  }
-
-  /* ── ANIMATE OUT ── */
-  function animateOut() {
-    clearAllTimers();
-    inner.removeEventListener('scroll', onInnerScroll);
-
-    cards.forEach(function (card, i) {
-      var isLeft = card.classList.contains('ab-card--left');
-      var exitX  = isLeft ? -40 : 40;
-      var delay  = i * 0.04;
-
-      card.style.transition = [
-        'opacity '   + CFG_SERVICES.OUT_DURATION + 's ' + CFG_SERVICES.EASING_OUT + ' ' + delay + 's',
-        'transform ' + CFG_SERVICES.OUT_DURATION + 's ' + CFG_SERVICES.EASING_OUT + ' ' + delay + 's',
-        'filter '    + CFG_SERVICES.OUT_DURATION + 's ease ' + delay + 's',
-      ].join(', ');
-      card.style.opacity   = '0';
-      card.style.transform = 'translateX(' + exitX + 'px) scale(0.97)';
-      card.style.filter    = 'blur(4px)';
-      card.classList.remove('ab-card--in');
-    });
-
-    if (routeLine) {
-      routeLine.style.transition = 'opacity 0.3s ease';
-      routeLine.style.opacity    = '0';
-      routeLine.classList.remove('ab-route-line--active');
-    }
-
-    stats.forEach(function (s, i) {
-      s.style.transition = 'opacity 0.3s ease ' + (i * 0.04) + 's, transform 0.3s ease ' + (i * 0.04) + 's';
-      s.style.opacity    = '0';
-      s.style.transform  = 'translateY(12px)';
-    });
-  }
-
-  /* ── ENTRY / EXIT handlers ── */
-  var servicesPanelIndex = -1;
-  var allPanels = Array.from(document.querySelectorAll('.panel'));
-  allPanels.forEach(function (p, i) {
-    if (p.id === 'section-services') servicesPanelIndex = i;
-  });
-
-  function onSectionEnter() {
-    if (_isActive) return;
-    _isActive = true;
-    if (inner) inner.scrollTop = 0;
-    animateIn();
-  }
-
-  function onSectionExit() {
-    if (!_isActive) return;
-    _isActive = false;
-    animateOut();
-  }
-
-  /* ── DETECTION ── */
-  var container = document.getElementById('scroll-container');
-
-  function checkActivePanel() {
-    if (!container || servicesPanelIndex < 0) return;
-    var servicesPanel = allPanels[servicesPanelIndex];
-    if (!servicesPanel) return;
-
-    var diff = Math.abs(container.scrollTop - servicesPanel.offsetTop);
-    var isNowActive = diff <= CFG_SERVICES.SNAP_TOLERANCE;
-
-    if (isNowActive && !_isActive) {
-      onSectionEnter();
-    } else if (!isNowActive && _isActive) {
-      onSectionExit();
-    }
-  }
-
-  if (container) {
-    container.addEventListener('scroll', checkActivePanel, { passive: true });
-  }
-
-  /* ── PATCH voidGoToSection ── */
-  (function patchGoTo() {
-    var attempts = 0;
-    var poller = setInterval(function () {
-      attempts++;
-      if (typeof window.voidGoToSection === 'function') {
-        var orig = window.voidGoToSection;
-        window.voidGoToSection = function (index) {
-          if (index !== servicesPanelIndex && _isActive) {
-            onSectionExit();
-          }
-          orig(index);
-          if (index === servicesPanelIndex) {
-            setTimeout(onSectionEnter, 50);
-          }
-        };
-        clearInterval(poller);
-      }
-      if (attempts > 20) clearInterval(poller);
-    }, 100);
-  })();
-
-  /* ── LOAD SAFETY ── */
-  window.addEventListener('load', function () {
-    checkActivePanel();
-  });
-
-  /* ── RESIZE ── */
-  var _resizeT;
-  window.addEventListener('resize', function () {
-    clearTimeout(_resizeT);
-    _resizeT = setTimeout(checkActivePanel, 220);
-  });
-
-  /* ── Initial hidden state ── */
-  (function () {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', resetToHidden);
-    } else {
-      resetToHidden();
-    }
-  })();
-
-})();
-
-// ── END SECTION-SERVICES ──
-
-
-// ── PASTE SECTION-REVIEWS BELOW ──
-
-(function () {
-  'use strict';
-
-  var section = document.getElementById('section-reviews');
-  if (!section) return;
-
-  var track = document.getElementById('whr-track');
-  if (!track) return;
-
-  var cards = Array.from(track.querySelectorAll('.whr-card'));
-  var dots = Array.from(document.querySelectorAll('.whr-dot'));
-  var btnPrev = document.getElementById('whr-prev');
-  var btnNext = document.getElementById('whr-next');
-  var ctrEl = document.getElementById('whr-current');
-  var barEl = document.getElementById('whr-bar-fill');
-
-  var total = cards.length;
-  if (total === 0) return;
-
-  /* ── DETECT TOUCH DEVICE ── */
-  var IS_TOUCH = (
-    ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
-    window.matchMedia('(hover: none) and (pointer: coarse)').matches
-  );
-
-  /* ── CONFIG ── */
-  var CONFIG = {
-    DESKTOP: {
-      autoPlayDelay: 5000,
-      transitionDuration: 600,
-      lockDuration: 600,
-      swipeThreshold: 50,
-    },
-    MOBILE: {
-      autoPlayDelay: 3500,
-      transitionDuration: 400,
-      lockDuration: 400,
-      swipeThreshold: 30,
-    }
-  };
-
-  var settings = IS_TOUCH ? CONFIG.MOBILE : CONFIG.DESKTOP;
-
-  /* ── STATE ── */
-  var current = 0;
-  var timer = null;
-  var rafId = null;
-  var t0 = null;
-  var locked = false;
-  var paused = false;
-  var isVisible = false;
-  var touchStartX = null;
-  var touchStartY = null;
-  var isSwiping = false;
-
-  /* ── POSITION CALCULATION ── */
-  function posFor(rel) {
-    if (rel === 0) return 'center';
-    if (rel === 1 || rel === -(total - 1)) return 'right';
-    if (rel === total - 1 || rel === -1) return 'left';
-    if (rel === 2 || rel === -(total - 2)) return 'far-right';
-    if (rel === total - 2 || rel === -2) return 'far-left';
-    return 'hidden';
-  }
-
-  /* ── RENDER ── */
-  function render(idx) {
-    var i = ((idx % total) + total) % total;
-    current = i;
-
-    cards.forEach(function (card, c) {
-      var rel = ((c - i) % total + total) % total;
-      if (rel > Math.floor(total / 2)) rel -= total;
-      var pos = posFor(rel);
-      card.setAttribute('data-pos', pos);
-      card.setAttribute('aria-hidden', pos !== 'center' ? 'true' : 'false');
-    });
-
-    dots.forEach(function (dot, d) {
-      var on = d === i;
-      dot.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-
-    if (ctrEl) {
-      ctrEl.textContent = String(i + 1).padStart(2, '0');
-    }
-  }
-
-  /* ── NAVIGATION ── */
-  function goTo(idx, byUser) {
-    if (locked) return;
-    if (idx === current) return;
-
-    locked = true;
-    setTimeout(function () {
-      locked = false;
-    }, settings.lockDuration);
-
-    render(idx);
-
-    if (byUser) {
-      resetAuto();
-    }
-  }
-
-  function next(byUser) {
-    goTo(current + 1, byUser);
-  }
-
-  function prev(byUser) {
-    goTo(current - 1, byUser);
-  }
-
-  /* ── PROGRESS BAR ── */
-  function startBar() {
-    cancelAnimationFrame(rafId);
-    t0 = performance.now();
-
-    function tick(now) {
-      var elapsed = now - t0;
-      var pct = Math.min((elapsed / settings.autoPlayDelay) * 100, 100);
-      if (barEl) {
-        barEl.style.width = pct + '%';
-      }
-      if (pct < 100) {
-        rafId = requestAnimationFrame(tick);
-      }
-    }
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function stopBar() {
-    cancelAnimationFrame(rafId);
-    if (barEl) {
-      barEl.style.width = '0%';
-    }
-  }
-
-  /* ── AUTO-PLAY ── */
-  function startAuto() {
-    clearInterval(timer);
-    if (!isVisible || paused) return;
-
-    timer = setInterval(function () {
-      if (!paused && isVisible) {
-        next(false);
-        startBar();
-      }
-    }, settings.autoPlayDelay);
-
-    startBar();
-  }
-
-  function resetAuto() {
-    clearInterval(timer);
-    stopBar();
-    if (!paused && isVisible) {
-      startAuto();
-    }
-  }
-
-  function pause() {
-    paused = true;
-    clearInterval(timer);
-    cancelAnimationFrame(rafId);
-  }
-
-  function resume() {
-    paused = false;
-    if (isVisible) {
-      startAuto();
-    }
-  }
-
-  /* ── TOUCH HANDLING (Mobile) ── */
-  function handleTouchStart(e) {
-    var touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-    isSwiping = false;
-    pause();
-  }
-
-  function handleTouchMove(e) {
-    if (touchStartX === null) return;
-    var touch = e.touches[0];
-    var dx = touch.clientX - touchStartX;
-    var dy = touch.clientY - touchStartY;
-
-    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
-      isSwiping = true;
-      e.preventDefault();
-    }
-  }
-
-  function handleTouchEnd(e) {
-    if (touchStartX === null) return;
-
-    var endX = e.changedTouches[0].clientX;
-    var endY = e.changedTouches[0].clientY;
-    var dx = endX - touchStartX;
-    var dy = endY - touchStartY;
-
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > settings.swipeThreshold) {
-      if (dx < 0) {
-        next(true);
-      } else {
-        prev(true);
-      }
-    }
-
-    touchStartX = null;
-    touchStartY = null;
-    isSwiping = false;
-
-    setTimeout(function () {
-      resume();
-    }, 150);
-  }
-
-  function handleTouchCancel() {
-    touchStartX = null;
-    touchStartY = null;
-    isSwiping = false;
-    resume();
-  }
-
-  /* ── MOUSE DRAG (Desktop) ── */
-  var mouseStartX = null;
-  var isDragging = false;
-
-  function handleMouseDown(e) {
-    if (IS_TOUCH) return;
-    mouseStartX = e.clientX;
-    isDragging = false;
-    pause();
-  }
-
-  function handleMouseMove(e) {
-    if (mouseStartX === null) return;
-    var dx = e.clientX - mouseStartX;
-    if (Math.abs(dx) > 8) {
-      isDragging = true;
-    }
-  }
-
-  function handleMouseUp(e) {
-    if (mouseStartX === null) return;
-    var dx = e.clientX - mouseStartX;
-    if (isDragging && Math.abs(dx) > settings.swipeThreshold) {
-      if (dx < 0) {
-        next(true);
-      } else {
-        prev(true);
-      }
-    }
-    mouseStartX = null;
-    isDragging = false;
-    resume();
-  }
-
-  /* ── CLICK ON SIDE CARDS ── */
-  cards.forEach(function (card) {
-    card.addEventListener('click', function () {
-      var pos = card.getAttribute('data-pos');
-      if (pos === 'left') {
-        prev(true);
-      } else if (pos === 'right') {
-        next(true);
-      }
-    });
-  });
-
-  /* ── BUTTONS ── */
-  if (btnPrev) {
-    btnPrev.addEventListener('click', function () { prev(true); });
-  }
-
-  if (btnNext) {
-    btnNext.addEventListener('click', function () { next(true); });
-  }
-
-  /* ── DOTS ── */
-  dots.forEach(function (dot, idx) {
-    dot.addEventListener('click', function () {
-      goTo(idx, true);
-    });
-
-    dot.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prev(true);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        next(true);
-      } else if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        goTo(idx, true);
-      }
-    });
-  });
-
-  /* ── KEYBOARD ── */
-  section.addEventListener('keydown', function (e) {
-    if (e.target.closest('.whr-dots') || e.target.closest('.whr-arrow')) return;
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      prev(true);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      next(true);
-    }
-  });
-
-  /* ── PAUSE ON HOVER/FOCUS ── */
-  if (!IS_TOUCH) {
-    section.addEventListener('mouseenter', pause);
-    section.addEventListener('mouseleave', function () {
-      if (isVisible) {
-        resume();
-      }
-    });
-  }
-
-  section.addEventListener('focusin', pause);
-  section.addEventListener('focusout', function (e) {
-    if (!section.contains(e.relatedTarget)) {
-      resume();
-    }
-  });
-
-  /* ── TOUCH EVENTS ── */
-  section.addEventListener('touchstart', handleTouchStart, { passive: true });
-  section.addEventListener('touchmove', handleTouchMove, { passive: false });
-  section.addEventListener('touchend', handleTouchEnd, { passive: true });
-  section.addEventListener('touchcancel', handleTouchCancel, { passive: true });
-
-  /* ── MOUSE DRAG EVENTS ── */
-  if (!IS_TOUCH) {
-    track.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    track.addEventListener('dragstart', function (e) {
-      e.preventDefault();
-    });
-  }
-
-  /* ── INTERSECTION OBSERVER ── */
-  function initIntersectionObserver() {
-    if (!('IntersectionObserver' in window)) {
-      isVisible = true;
-      startAuto();
-      return;
-    }
-
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          isVisible = true;
-          if (!paused) {
-            startAuto();
-          }
-        } else {
-          isVisible = false;
-          clearInterval(timer);
-          stopBar();
-        }
-      });
-    }, {
-      threshold: 0.3,
-      rootMargin: '0px 0px -10% 0px'
-    });
-
-    observer.observe(section);
-    window._whrObserver = observer;
-  }
-
-  initIntersectionObserver();
-
-  /* ── PATCH ENGINE ── */
-  function patchEngine() {
-    if (typeof window.voidGoToSection !== 'function') return false;
-
-    var orig = window.voidGoToSection;
-    var panels = null;
-
-    window.voidGoToSection = function (idx) {
-      if (!panels) {
-        panels = Array.from(document.querySelectorAll('.panel'));
-      }
-      var ours = panels.indexOf(section);
-
-      if (idx !== ours) {
-        isVisible = false;
-        clearInterval(timer);
-        stopBar();
-      }
-
-      orig(idx);
-
-      if (idx === ours) {
-        isVisible = true;
-        setTimeout(function () {
-          render(0);
-          if (!paused) {
-            startAuto();
-          }
-        }, 80);
-      }
-    };
-
-    return true;
-  }
-
-  if (!patchEngine()) {
-    var tries = 0;
-    var poll = setInterval(function () {
-      if (patchEngine() || ++tries > 40) {
-        clearInterval(poll);
-      }
-    }, 100);
-  }
-
-  /* ── RESIZE HANDLER ── */
-  var resizeTimer = null;
-  function handleResize() {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () {
-      render(current);
-    }, 250);
-  }
-  window.addEventListener('resize', handleResize);
-
-  /* ── CLEANUP ── */
-  window.addEventListener('pagehide', function () {
-    clearInterval(timer);
-    cancelAnimationFrame(rafId);
-    if (window._whrObserver) {
-      window._whrObserver.disconnect();
-    }
-    window.removeEventListener('resize', handleResize);
-
-    if (!IS_TOUCH) {
-      track.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    }
-
-    section.removeEventListener('touchstart', handleTouchStart);
-    section.removeEventListener('touchmove', handleTouchMove);
-    section.removeEventListener('touchend', handleTouchEnd);
-    section.removeEventListener('touchcancel', handleTouchCancel);
-  });
-
-  /* ── INIT ── */
-  render(0);
-
-  setTimeout(function () {
-    if (!paused && isVisible) {
-      startAuto();
-    }
-  }, 200);
-
-  /* ── EXPOSE API ── */
-  window.whrCarousel = {
-    enter: function () {
-      isVisible = true;
-      render(current);
-      if (!paused) startAuto();
-    },
-    exit: function () {
-      isVisible = false;
-      clearInterval(timer);
-      stopBar();
-    },
-    goTo: function (i) {
-      goTo(i, true);
-    },
-    next: function () {
-      next(true);
-    },
-    prev: function () {
-      prev(true);
-    },
-    pause: pause,
-    resume: resume,
-    destroy: function () {
-      clearInterval(timer);
-      cancelAnimationFrame(rafId);
-      if (window._whrObserver) {
-        window._whrObserver.disconnect();
-      }
-    }
-  };
-
-})();
-
-// ── END SECTION-REVIEWS ──
-
-// ── PASTE SECTION-COVERAGE BELOW ──
-
-(function () {
-  'use strict';
-
-  var section = document.getElementById('section-coverage');
-  if (!section) return;
-
-  var stats = section.querySelectorAll('.wha-stat__num');
-  var isActive = false;
-  var timer = null;
-
-  function runCounters() {
-    stats.forEach(function (el) {
-      var text = el.textContent.trim();
-      var numMatch = text.match(/([\d,]+)/);
-      if (!numMatch) return;
-      var target = parseInt(numMatch[1].replace(/,/g, ''), 10);
-      if (isNaN(target)) return;
-      var suffix = el.querySelector('.wha-stat__suffix');
-      var suffixText = suffix ? ' ' + suffix.textContent.trim() : '';
-      var dur = 1200;
-      var start = null;
-
-      function tick(ts) {
-        if (!start) start = ts;
-        var p = Math.min((ts - start) / dur, 1);
-        var ease = 1 - Math.pow(1 - p, 4);
-        var val = Math.round(target * ease);
-        el.textContent = val.toLocaleString() + suffixText;
-        if (p < 1) requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    });
-  }
-
-  function resetCounters() {
-    stats.forEach(function (el) {
-      var suffix = el.querySelector('.wha-stat__suffix');
-      var suffixText = suffix ? ' ' + suffix.textContent.trim() : '';
-      el.textContent = '0' + suffixText;
-    });
-  }
-
-  function enter() {
-    if (isActive) return;
-    isActive = true;
-    section.classList.add('is-visible');
-    timer = setTimeout(function () {
-      runCounters();
-    }, 200);
-  }
-
-  function exit() {
-    if (!isActive) return;
-    isActive = false;
-    section.classList.remove('is-visible');
-    resetCounters();
-    clearTimeout(timer);
-  }
-
-  var io = null;
-
-  function initObserver() {
-    if (io) io.disconnect();
-
-    io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          clearTimeout(timer);
-          timer = setTimeout(function () {
-            enter();
-          }, 100);
-        } else {
-          exit();
-        }
-      });
-    }, { threshold: 0.15 });
-
-    io.observe(section);
-  }
-
-  if ('IntersectionObserver' in window) {
-    initObserver();
-  } else {
-    enter();
-  }
-
-  window.addEventListener('resize', function () {
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      if (io) {
-        io.disconnect();
-        io.observe(section);
-      }
-    }, 300);
-  });
-
-  (function patchGoTo() {
-    var attempts = 0;
-    var poll = setInterval(function () {
-      attempts++;
-      if (typeof window.voidGoToSection === 'function') {
-        var orig = window.voidGoToSection;
-        var panels = null;
-        window.voidGoToSection = function (idx) {
-          if (!panels) panels = Array.from(document.querySelectorAll('.panel'));
-          var ours = panels.indexOf(section);
-          if (idx !== ours && section.classList.contains('is-visible')) {
-            exit();
-          }
-          orig(idx);
-          if (idx === ours) {
-            setTimeout(function () {
-              resetCounters();
-              enter();
-            }, 60);
-          }
-        };
-        clearInterval(poll);
-      }
-      if (attempts > 30) clearInterval(poll);
-    }, 80);
-  }());
-
-})();
-
-// ── END SECTION-COVERAGE ──
-
-
-// ── PASTE SECTION-FAQ BELOW ──
-
-(function () {
-  'use strict';
-
-  var section = document.getElementById('section-faq');
-  if (!section) return;
-
-  var items = Array.from(section.querySelectorAll('.whf-item'));
-  var clickables = Array.from(section.querySelectorAll('.whf-item__clickable'));
-
-  function closeItem(item) {
-    item.classList.remove('whf-item--open');
-    var btn = item.querySelector('.whf-item__clickable');
-    if (btn) btn.setAttribute('aria-expanded', 'false');
-  }
-
-  function openItem(item) {
-    item.classList.add('whf-item--open');
-    var btn = item.querySelector('.whf-item__clickable');
-    if (btn) btn.setAttribute('aria-expanded', 'true');
-  }
-
-  clickables.forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
-      var item = btn.closest('.whf-item');
-      var isOpen = item.classList.contains('whf-item--open');
-
-      items.forEach(function (other) {
-        if (other !== item) closeItem(other);
-      });
-
-      if (isOpen) {
-        closeItem(item);
-      } else {
-        openItem(item);
-      }
-    });
-
-    btn.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        var item = btn.closest('.whf-item');
-        var isOpen = item.classList.contains('whf-item--open');
-
-        items.forEach(function (other) {
-          if (other !== item) closeItem(other);
-        });
-
-        if (isOpen) {
-          closeItem(item);
-        } else {
-          openItem(item);
-        }
-      }
-    });
-  });
-
-  var revealTimers = [];
-
-  function clearRevealTimers() {
-    revealTimers.forEach(function (t) { clearTimeout(t); });
-    revealTimers = [];
-  }
+  var header = section.querySelector('.whpr-header');
+  var steps = section.querySelectorAll('.whpr-step');
+  var cta = section.querySelector('.whpr-cta');
 
   function resetReveal() {
-    clearRevealTimers();
-    items.forEach(function (item) {
-      item.classList.remove('whf-item--visible');
+    var els = [];
+    if (header) els.push(header);
+    steps.forEach(function(s){ els.push(s); });
+    if (cta) els.push(cta);
+    els.forEach(function(el){
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(25px)';
+      el.style.transition = 'none';
     });
   }
 
   function playReveal() {
-    clearRevealTimers();
-    items.forEach(function (item, i) {
-      var t = setTimeout(function () {
-        item.classList.add('whf-item--visible');
-      }, 90 * i);
-      revealTimers.push(t);
+    var delay = 0;
+    if (header) { header.offsetHeight; setTimeout(function(){ header.style.transition='opacity 0.6s ease, transform 0.6s ease'; header.style.opacity='1'; header.style.transform='translateY(0)'; }, delay); delay += 100; }
+    steps.forEach(function(step, i){ step.offsetHeight; setTimeout(function(){ step.style.transition='opacity 0.5s ease, transform 0.5s ease'; step.style.opacity='1'; step.style.transform='translateY(0)'; }, delay + i * 70); });
+    delay += steps.length * 70;
+    if (cta) { cta.offsetHeight; setTimeout(function(){ cta.style.transition='opacity 0.5s ease, transform 0.5s ease'; cta.style.opacity='1'; cta.style.transform='translateY(0)'; }, delay); }
+  }
+
+  resetReveal();
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting) { resetReveal(); playReveal(); }
+        else { resetReveal(); }
+      });
+    }, { threshold: 0.15 });
+    io.observe(section);
+  } else { playReveal(); }
+
+  function patchEngine() {
+    if (typeof window.voidGoToSection !== 'function') return false;
+    var orig = window.voidGoToSection, panels = null;
+    window.voidGoToSection = function(idx){
+      if (!panels) panels = Array.from(document.querySelectorAll('.panel'));
+      var ours = panels.indexOf(section);
+      if (idx === ours) { setTimeout(function(){ resetReveal(); requestAnimationFrame(function(){ requestAnimationFrame(playReveal); }); }, 55); }
+      else { resetReveal(); }
+      orig(idx);
+    };
+    return true;
+  }
+  if (!patchEngine()) { var tries=0; var poll=setInterval(function(){ if(patchEngine()||++tries>40) clearInterval(poll); },100); }
+
+})();
+
+// ── END SECTION-PROCESS ──
+
+
+
+
+// ── PASTE SECTION-BOOKING BELOW ──
+
+(function () {
+  'use strict';
+
+  var section = document.getElementById('section-booking');
+  if (!section) return;
+
+  var form = document.getElementById('whbk-form');
+  var submitBtn = document.getElementById('whbk-submit-btn');
+  var successEl = document.getElementById('whbk-success');
+  var errorEl = document.getElementById('whbk-error');
+  var errorText = document.getElementById('whbk-error-text');
+  var successName = document.getElementById('whbk-success-name');
+  var successBtn = document.getElementById('whbk-success-btn');
+  var errorBtn = document.getElementById('whbk-error-btn');
+
+  /* ── LOCK STATE ── */
+  var isLocked = false;
+  var swipeCount = 0;
+  var lockTimer = null;
+  var lockIndicator = section.querySelector('.lock-indicator');
+
+  /* ── Helper: Show/Hide Lock Indicator ── */
+  function showLockIndicator(message) {
+    if (lockIndicator) {
+      lockIndicator.textContent = message || '👆 Swipe again to exit';
+      lockIndicator.style.display = 'block';
+      section.dataset.locked = 'true';
+    }
+  }
+
+  function hideLockIndicator() {
+    if (lockIndicator) {
+      lockIndicator.style.display = 'none';
+      section.dataset.locked = 'false';
+    }
+  }
+
+  function resetSwipeCount() {
+    swipeCount = 0;
+  }
+
+  /* ── LOCK INPUTS ── */
+  var lockInputs = section.querySelectorAll('.whbk-lock-input');
+  lockInputs.forEach(function(input) {
+    // On focus — lock the section
+    input.addEventListener('focus', function() {
+      isLocked = true;
+      showLockIndicator('🔒 Typing... Swipe twice to exit');
+      resetSwipeCount();
+      
+      // Clear any existing timer
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = null;
+      }
+    });
+
+    // On blur — unlock after a short delay
+    input.addEventListener('blur', function() {
+      // Wait a moment to see if user tabs to another input
+      lockTimer = setTimeout(function() {
+        // Check if any input in this section has focus
+        var activeElement = document.activeElement;
+        var isInSection = activeElement && section.contains(activeElement) && 
+                         activeElement.classList.contains('whbk-lock-input');
+        
+        if (!isInSection) {
+          isLocked = false;
+          hideLockIndicator();
+          resetSwipeCount();
+        }
+        lockTimer = null;
+      }, 300);
+    });
+
+    // On input (typing) — reset swipe count
+    input.addEventListener('input', function() {
+      if (isLocked) {
+        resetSwipeCount();
+        showLockIndicator('🔒 Typing... Swipe twice to exit');
+      }
+    });
+  });
+
+  /* ── PATCH SNAP SCROLL WITH DOUBLE SWIPE ── */
+  (function patchSnapScroll() {
+    var attempts = 0;
+    var poll = setInterval(function() {
+      attempts++;
+      
+      // Look for the snap scroll function (adjust name as needed)
+      if (typeof window.goToSection === 'function' || typeof window.voidGoToSection === 'function') {
+        var snapFn = window.goToSection || window.voidGoToSection;
+        
+        // Store original function
+        var originalFn = snapFn;
+        var functionName = window.goToSection ? 'goToSection' : 'voidGoToSection';
+        
+        // Override with double-swipe check
+        window[functionName] = function(targetIndex) {
+          // If locked, handle double swipe
+          if (isLocked) {
+            swipeCount++;
+            
+            if (swipeCount === 1) {
+              showLockIndicator('👆 Swipe again to exit');
+              // Vibrate on mobile if available
+              if (navigator.vibrate) navigator.vibrate(20);
+              return; // Block the navigation
+            } else if (swipeCount >= 2) {
+              // Double swipe detected — unlock and navigate
+              isLocked = false;
+              hideLockIndicator();
+              resetSwipeCount();
+              // Remove focus from any input
+              if (document.activeElement && section.contains(document.activeElement)) {
+                document.activeElement.blur();
+              }
+              // Now navigate
+              originalFn(targetIndex);
+              return;
+            }
+            return; // Block navigation
+          }
+          
+          // Not locked — normal navigation
+          originalFn(targetIndex);
+        };
+        
+        clearInterval(poll);
+        return;
+      }
+      
+      if (attempts > 30) clearInterval(poll);
+    }, 80);
+  })();
+
+  /* ── Helper: Scroll inside the section's content area ── */
+  function scrollToSectionTop() {
+    var content = section.querySelector('.section-content');
+    if (content) {
+      content.scrollTop = 0;
+    }
+  }
+
+  /* ── Form Submission ── */
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var data = new FormData(form);
+
+      // Show loading state
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('whbk-submit--loading');
+      }
+
+      // Hide any previous error/success
+      if (errorEl) errorEl.classList.remove('whbk-error--visible');
+      if (successEl) successEl.classList.remove('whbk-success--visible');
+
+      // Submit to Formspree
+      fetch('https://formspree.io/f/xeebraeo', {
+        method: 'POST',
+        body: data,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .then(function (response) {
+        if (response.ok) {
+          // Success — hide form, show success
+          form.classList.add('whbk-form--hidden');
+          var nameInput = document.getElementById('whbk-name');
+          var firstName = nameInput ? nameInput.value.trim().split(' ')[0] : 'there';
+          if (successName) successName.textContent = firstName;
+          if (successEl) successEl.classList.add('whbk-success--visible');
+          form.reset();
+
+          // Unlock and hide indicator on success
+          isLocked = false;
+          hideLockIndicator();
+          resetSwipeCount();
+
+          // Scroll to top of section content
+          setTimeout(function () {
+            scrollToSectionTop();
+          }, 150);
+
+        } else {
+          // Error from server
+          return response.json().then(function (data) {
+            throw new Error(data.error || 'Something went wrong — please try again.');
+          });
+        }
+      })
+      .catch(function (err) {
+        if (errorText) errorText.textContent = err.message || 'Network error — check your connection.';
+        if (errorEl) errorEl.classList.add('whbk-error--visible');
+      })
+      .finally(function () {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('whbk-submit--loading');
+        }
+      });
     });
   }
 
-  var observer = null;
-
-  function initObserver() {
-    if (observer) observer.disconnect();
-
-    observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) {
-          clearRevealTimers();
-          playReveal();
-        } else {
-          resetReveal();
-          items.forEach(function (item) { closeItem(item); });
+  /* ── Success button — reset form ── */
+  if (successBtn) {
+    successBtn.addEventListener('click', function () {
+      if (successEl) successEl.classList.remove('whbk-success--visible');
+      form.classList.remove('whbk-form--hidden');
+      // Unlock
+      isLocked = false;
+      hideLockIndicator();
+      resetSwipeCount();
+      setTimeout(function () {
+        var content = section.querySelector('.section-content');
+        if (content) {
+          content.scrollTop = 0;
         }
-      });
-    }, { threshold: 0.3 });
+      }, 100);
+    });
+  }
 
-    observer.observe(section);
+  /* ── Error button — retry ── */
+  if (errorBtn) {
+    errorBtn.addEventListener('click', function () {
+      if (errorEl) errorEl.classList.remove('whbk-error--visible');
+      // Unlock on error dismiss
+      isLocked = false;
+      hideLockIndicator();
+      resetSwipeCount();
+    });
+  }
+
+  /* ── Entrance / Exit ── */
+  function enter() { section.classList.add('is-visible'); }
+  function exit() { 
+    section.classList.remove('is-visible');
+    // Unlock when leaving section
+    isLocked = false;
+    hideLockIndicator();
+    resetSwipeCount();
   }
 
   if ('IntersectionObserver' in window) {
-    initObserver();
-  } else {
-    items.forEach(function (item) { item.classList.add('whf-item--visible'); });
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting) enter();
+        else exit();
+      });
+    }, { threshold: 0.15 });
+    io.observe(section);
   }
 
-  var resizeTimer = null;
-  window.addEventListener('resize', function () {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () {
-      if (observer) {
-        observer.disconnect();
-        observer.observe(section);
-      }
-    }, 300);
-  });
-
+  /* ── Patch engine ── */
   (function patchGoTo() {
     var attempts = 0;
     var poll = setInterval(function () {
@@ -2827,16 +1768,9 @@ var DOT_LABELS = [
         window.voidGoToSection = function (idx) {
           if (!panels) panels = Array.from(document.querySelectorAll('.panel'));
           var ours = panels.indexOf(section);
-          if (idx === ours) {
-            setTimeout(function () {
-              resetReveal();
-              requestAnimationFrame(function () { playReveal(); });
-            }, 55);
-          } else {
-            resetReveal();
-            items.forEach(function (item) { closeItem(item); });
-          }
+          if (idx !== ours && section.classList.contains('is-visible')) exit();
           orig(idx);
+          if (idx === ours) setTimeout(enter, 60);
         };
         clearInterval(poll);
       }
@@ -2846,13 +1780,290 @@ var DOT_LABELS = [
 
 })();
 
-// ── END SECTION-FAQ ──
+// ── END SECTION-BOOKING ──
 
-
-// ── PASTE SECTION-FOOTER BELOW ──
+// ── PASTE SECTION-CAREERS BELOW ──
 
 (function () {
   'use strict';
+
+  var section = document.getElementById('section-careers');
+  if (!section) return;
+
+  var form = document.getElementById('whcr-form');
+  var submitBtn = document.getElementById('whcr-submit-btn');
+  var successEl = document.getElementById('whcr-success');
+  var errorEl = document.getElementById('whcr-error');
+  var errorText = document.getElementById('whcr-error-text');
+  var successName = document.getElementById('whcr-success-name');
+  var successBtn = document.getElementById('whcr-success-btn');
+  var errorBtn = document.getElementById('whcr-error-btn');
+
+  /* ── LOCK STATE ── */
+  var isLocked = false;
+  var swipeCount = 0;
+  var lockTimer = null;
+  var lockIndicator = section.querySelector('.lock-indicator');
+
+  /* ── Helper: Show/Hide Lock Indicator ── */
+  function showLockIndicator(message) {
+    if (lockIndicator) {
+      lockIndicator.textContent = message || '👆 Swipe again to exit';
+      lockIndicator.style.display = 'block';
+      section.dataset.locked = 'true';
+    }
+  }
+
+  function hideLockIndicator() {
+    if (lockIndicator) {
+      lockIndicator.style.display = 'none';
+      section.dataset.locked = 'false';
+    }
+  }
+
+  function resetSwipeCount() {
+    swipeCount = 0;
+  }
+
+  /* ── LOCK INPUTS ── */
+  var lockInputs = section.querySelectorAll('.whcr-lock-input');
+  lockInputs.forEach(function(input) {
+    // On focus — lock the section
+    input.addEventListener('focus', function() {
+      isLocked = true;
+      showLockIndicator('🔒 Typing... Swipe twice to exit');
+      resetSwipeCount();
+      
+      // Clear any existing timer
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = null;
+      }
+    });
+
+    // On blur — unlock after a short delay
+    input.addEventListener('blur', function() {
+      // Wait a moment to see if user tabs to another input
+      lockTimer = setTimeout(function() {
+        // Check if any input in this section has focus
+        var activeElement = document.activeElement;
+        var isInSection = activeElement && section.contains(activeElement) && 
+                         activeElement.classList.contains('whcr-lock-input');
+        
+        if (!isInSection) {
+          isLocked = false;
+          hideLockIndicator();
+          resetSwipeCount();
+        }
+        lockTimer = null;
+      }, 300);
+    });
+
+    // On input (typing) — reset swipe count
+    input.addEventListener('input', function() {
+      if (isLocked) {
+        resetSwipeCount();
+        showLockIndicator('🔒 Typing... Swipe twice to exit');
+      }
+    });
+  });
+
+  /* ── PATCH SNAP SCROLL WITH DOUBLE SWIPE ── */
+  (function patchSnapScroll() {
+    var attempts = 0;
+    var poll = setInterval(function() {
+      attempts++;
+      
+      if (typeof window.goToSection === 'function' || typeof window.voidGoToSection === 'function') {
+        var snapFn = window.goToSection || window.voidGoToSection;
+        var originalFn = snapFn;
+        var functionName = window.goToSection ? 'goToSection' : 'voidGoToSection';
+        
+        window[functionName] = function(targetIndex) {
+          if (isLocked) {
+            swipeCount++;
+            
+            if (swipeCount === 1) {
+              showLockIndicator('👆 Swipe again to exit');
+              if (navigator.vibrate) navigator.vibrate(20);
+              return;
+            } else if (swipeCount >= 2) {
+              isLocked = false;
+              hideLockIndicator();
+              resetSwipeCount();
+              if (document.activeElement && section.contains(document.activeElement)) {
+                document.activeElement.blur();
+              }
+              originalFn(targetIndex);
+              return;
+            }
+            return;
+          }
+          originalFn(targetIndex);
+        };
+        
+        clearInterval(poll);
+        return;
+      }
+      
+      if (attempts > 30) clearInterval(poll);
+    }, 80);
+  })();
+
+  /* ── Helper: Scroll inside the section's content area ── */
+  function scrollToSectionTop() {
+    var content = section.querySelector('.section-content');
+    if (content) {
+      content.scrollTop = 0;
+    }
+  }
+
+  /* ── Form Submission ── */
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var data = new FormData(form);
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('whcr-submit--loading');
+      }
+
+      if (errorEl) errorEl.classList.remove('whcr-error--visible');
+      if (successEl) successEl.classList.remove('whcr-success--visible');
+
+      fetch('https://formspree.io/f/xeebraeo', {
+        method: 'POST',
+        body: data,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .then(function (response) {
+        if (response.ok) {
+          form.classList.add('whcr-form--hidden');
+          var nameInput = document.getElementById('whcr-name');
+          var firstName = nameInput ? nameInput.value.trim().split(' ')[0] : 'there';
+          if (successName) successName.textContent = firstName;
+          if (successEl) successEl.classList.add('whcr-success--visible');
+          form.reset();
+
+          // Unlock on success
+          isLocked = false;
+          hideLockIndicator();
+          resetSwipeCount();
+
+          setTimeout(function () {
+            scrollToSectionTop();
+          }, 150);
+
+        } else {
+          return response.json().then(function (data) {
+            throw new Error(data.error || 'Something went wrong — please try again.');
+          });
+        }
+      })
+      .catch(function (err) {
+        if (errorText) errorText.textContent = err.message || 'Network error — check your connection.';
+        if (errorEl) errorEl.classList.add('whcr-error--visible');
+      })
+      .finally(function () {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('whcr-submit--loading');
+        }
+      });
+    });
+  }
+
+  /* ── Success button — reset form ── */
+  if (successBtn) {
+    successBtn.addEventListener('click', function () {
+      if (successEl) successEl.classList.remove('whcr-success--visible');
+      form.classList.remove('whcr-form--hidden');
+      isLocked = false;
+      hideLockIndicator();
+      resetSwipeCount();
+      setTimeout(function () {
+        var content = section.querySelector('.section-content');
+        if (content) {
+          content.scrollTop = 0;
+        }
+      }, 100);
+    });
+  }
+
+  /* ── Error button — retry ── */
+  if (errorBtn) {
+    errorBtn.addEventListener('click', function () {
+      if (errorEl) errorEl.classList.remove('whcr-error--visible');
+      isLocked = false;
+      hideLockIndicator();
+      resetSwipeCount();
+    });
+  }
+
+  /* ── Entrance / Exit ── */
+  function enter() { section.classList.add('is-visible'); }
+  function exit() { 
+    section.classList.remove('is-visible');
+    isLocked = false;
+    hideLockIndicator();
+    resetSwipeCount();
+  }
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting) enter();
+        else exit();
+      });
+    }, { threshold: 0.15 });
+    io.observe(section);
+  }
+
+  /* ── Patch engine ── */
+  (function patchGoTo() {
+    var attempts = 0;
+    var poll = setInterval(function () {
+      attempts++;
+      if (typeof window.voidGoToSection === 'function') {
+        var orig = window.voidGoToSection;
+        var panels = null;
+        window.voidGoToSection = function (idx) {
+          if (!panels) panels = Array.from(document.querySelectorAll('.panel'));
+          var ours = panels.indexOf(section);
+          if (idx !== ours && section.classList.contains('is-visible')) exit();
+          orig(idx);
+          if (idx === ours) setTimeout(enter, 60);
+        };
+        clearInterval(poll);
+      }
+      if (attempts > 30) clearInterval(poll);
+    }, 80);
+  }());
+
+})();
+
+// ── END SECTION-CAREERS ──
+
+// ── END SECTION-CAREERS ──
+  // ── END SECTION-4 (DESIGN) ──
+/* ============================================================
+   WESTERN HAWK — CTA + FOOTER JS  vFINAL-FIXED
+   - Dynamic year
+   - Velora Axis credit opens in new tab
+   - Reveal animations on scroll
+   - IntersectionObserver
+   - Engine patching for snap navigation
+   - Smart scroll: footer scrolls freely, snap engine works
+     when user tries to leave the section
+   - Back to top button: ONLY visible when footer section
+     is active/visible, hidden everywhere else
+   ============================================================ */
+
+(function () {
 
   var section = document.getElementById('footer');
   if (!section) return;
@@ -2865,10 +2076,12 @@ var DOT_LABELS = [
   var wrapEl = section.querySelector('.whfoot-wrap');
   var scrollHintEl = section.querySelector('.whfoot-scroll-hint');
 
+  // ═══════════════ 1. DYNAMIC YEAR ═══════════════
   if (yearEl) {
     yearEl.textContent = new Date().getFullYear();
   }
 
+  // ═══════════════ 2. VELORA AXIS CREDIT CLICK ═══════════════
   if (creditEl) {
     creditEl.addEventListener('click', function (e) {
       e.preventDefault();
@@ -2877,6 +2090,7 @@ var DOT_LABELS = [
     });
   }
 
+  // ═══════════════ 3. REVEAL ANIMATION ═══════════════
   var revealTimers = [];
 
   function clearRevealTimers() {
@@ -2889,7 +2103,7 @@ var DOT_LABELS = [
     [ctaScreenEl, gridEl, stripEl].forEach(function (el) {
       if (el) {
         el.style.opacity = '0';
-        el.style.transform = 'translateY(0)';
+        el.style.transform = 'translateY(30px)';
         el.style.transition = 'none';
       }
     });
@@ -2905,45 +2119,46 @@ var DOT_LABELS = [
     if (ctaScreenEl) {
       void ctaScreenEl.offsetHeight;
       var t1 = setTimeout(function () {
-        ctaScreenEl.style.transition = 'opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1)';
+        ctaScreenEl.style.transition = 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
         ctaScreenEl.style.opacity = '1';
         ctaScreenEl.style.transform = 'translateY(0)';
-      }, 50);
+      }, 0);
       revealTimers.push(t1);
     }
 
     if (gridEl) {
       void gridEl.offsetHeight;
       var t2 = setTimeout(function () {
-        gridEl.style.transition = 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+        gridEl.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
         gridEl.style.opacity = '1';
         gridEl.style.transform = 'translateY(0)';
-      }, 200);
+      }, 150);
       revealTimers.push(t2);
     }
 
     if (stripEl) {
       void stripEl.offsetHeight;
       var t3 = setTimeout(function () {
-        stripEl.style.transition = 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+        stripEl.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
         stripEl.style.opacity = '1';
         stripEl.style.transform = 'translateY(0)';
-      }, 350);
+      }, 300);
       revealTimers.push(t3);
     }
 
     if (scrollHintEl) {
       void scrollHintEl.offsetHeight;
       var t4 = setTimeout(function () {
-        scrollHintEl.style.transition = 'opacity 0.7s ease';
+        scrollHintEl.style.transition = 'opacity 0.6s ease';
         scrollHintEl.style.opacity = '0.5';
-      }, 650);
+      }, 600);
       revealTimers.push(t4);
     }
   }
 
   resetReveal();
 
+  // ═══════════════ 4. INTERSECTION OBSERVER ═══════════════
   var footerIsVisible = false;
 
   if ('IntersectionObserver' in window && 'IntersectionObserverEntry' in window) {
@@ -2955,10 +2170,12 @@ var DOT_LABELS = [
           if (entry.isIntersecting) {
             footerIsVisible = true;
             playReveal();
+            // Show BTT button when footer is visible
             if (bttButton) showBTT();
           } else {
             footerIsVisible = false;
             resetReveal();
+            // Hide BTT button when footer is not visible
             if (bttButton) hideBTT();
           }
         }, 120);
@@ -2978,7 +2195,9 @@ var DOT_LABELS = [
     playReveal();
   }
 
+  // ═══════════════ 5. SMART SCROLL FIX ═══════════════
   if (wrapEl) {
+    
     var touchStartY = 0;
     var touchStartScrollTop = 0;
 
@@ -2995,8 +2214,13 @@ var DOT_LABELS = [
       var isAtTop = scrollTop <= 0;
       var isAtBottom = scrollTop >= maxScroll - 1;
 
-      if (isAtTop && deltaY < 0) return;
-      if (isAtBottom && deltaY > 0) return;
+      if (isAtTop && deltaY < 0) {
+        return;
+      }
+
+      if (isAtBottom && deltaY > 0) {
+        return;
+      }
 
       e.stopPropagation();
     }, { passive: true });
@@ -3009,13 +2233,19 @@ var DOT_LABELS = [
       var scrollingUp = e.deltaY < 0;
       var scrollingDown = e.deltaY > 0;
 
-      if (isAtTop && scrollingUp) return;
-      if (isAtBottom && scrollingDown) return;
+      if (isAtTop && scrollingUp) {
+        return;
+      }
+
+      if (isAtBottom && scrollingDown) {
+        return;
+      }
 
       e.stopPropagation();
     }, { passive: true });
   }
 
+  // ═══════════════ 6. ENGINE PATCHING ═══════════════
   var patchInterval = null;
   var patchAttempts = 0;
   var PATCH_MAX_RETRIES = 40;
@@ -3035,6 +2265,7 @@ var DOT_LABELS = [
       var ourIndex = panelsCache.indexOf(section);
 
       if (index === ourIndex) {
+        // We are entering the footer section
         footerIsVisible = true;
         if (bttButton) showBTT();
         setTimeout(function () {
@@ -3044,6 +2275,7 @@ var DOT_LABELS = [
           });
         }, 60);
       } else {
+        // We are leaving the footer section
         footerIsVisible = false;
         if (bttButton) hideBTT();
         resetReveal();
@@ -3078,6 +2310,7 @@ var DOT_LABELS = [
     patchInterval = setInterval(tryPatch, PATCH_DELAY);
   }
 
+  // ═══════════════ 7. HIDE SCROLL HINT ═══════════════
   if (wrapEl && scrollHintEl) {
     var hintHidden = false;
     wrapEl.addEventListener('scroll', function () {
@@ -3089,6 +2322,7 @@ var DOT_LABELS = [
     }, { passive: true });
   }
 
+  // ═══════════════ 8. BACK TO TOP BUTTON (ONLY IN FOOTER) ═══════════════
   var bttButton = null;
 
   function createBackToTop() {
@@ -3101,25 +2335,65 @@ var DOT_LABELS = [
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 16V2M9 2L3 8M9 2L15 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     var style = document.createElement('style');
-    style.textContent = `
-      #btt-btn {
-        position: fixed; bottom: 28px; left: 28px; z-index: 99999;
-        width: 46px; height: 46px; border-radius: 50%;
-        border: 1px solid rgba(199,166,85,0.35);
-        background: rgba(8,10,12,0.9);
-        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        cursor: pointer; display: flex; align-items: center; justify-content: center;
-        opacity: 0; visibility: hidden; transform: translateY(12px);
-        transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5); color: rgba(199,166,85,0.9);
-        pointer-events: none; outline: none; user-select: none;
-      }
-      #btt-btn.show { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
-      #btt-btn:hover { border-color: rgba(199,166,85,0.7); background: rgba(12,14,18,0.95); color: rgba(199,166,85,1); transform: translateY(-3px); }
-      #btt-btn:active { transform: scale(0.95); }
-      @media (max-width: 768px) { #btt-btn { bottom: 20px; left: 20px; width: 42px; height: 42px; } }
-      @media (max-width: 480px) { #btt-btn { bottom: 16px; left: 16px; width: 40px; height: 40px; } }
-    `;
+    style.textContent = [
+      '#btt-btn {',
+      '  position: fixed;',
+      '  bottom: 28px;',
+      '  left: 28px;',
+      '  z-index: 99999;',
+      '  width: 46px;',
+      '  height: 46px;',
+      '  border-radius: 50%;',
+      '  border: 1px solid rgba(199,166,85,0.35);',
+      '  background: rgba(8,10,12,0.9);',
+      '  backdrop-filter: blur(14px);',
+      '  -webkit-backdrop-filter: blur(14px);',
+      '  cursor: pointer;',
+      '  display: flex;',
+      '  align-items: center;',
+      '  justify-content: center;',
+      '  opacity: 0;',
+      '  visibility: hidden;',
+      '  transform: translateY(12px);',
+      '  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;',
+      '  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);',
+      '  outline: none;',
+      '  -webkit-tap-highlight-color: transparent;',
+      '  user-select: none;',
+      '  color: rgba(199,166,85,0.9);',
+      '  pointer-events: none;',
+      '}',
+      '#btt-btn.show {',
+      '  opacity: 1;',
+      '  visibility: visible;',
+      '  transform: translateY(0);',
+      '  pointer-events: auto;',
+      '}',
+      '#btt-btn:hover {',
+      '  border-color: rgba(199,166,85,0.7);',
+      '  background: rgba(12,14,18,0.95);',
+      '  box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 32px rgba(199,166,85,0.12);',
+      '  color: rgba(199,166,85,1);',
+      '  transform: translateY(-3px);',
+      '}',
+      '#btt-btn:active {',
+      '  transform: scale(0.95);',
+      '  transition: transform 0.1s ease;',
+      '}',
+      '#btt-btn:focus-visible {',
+      '  outline: 2px solid rgba(199,166,85,0.8);',
+      '  outline-offset: 3px;',
+      '}',
+      '@media (max-width: 768px) {',
+      '  #btt-btn { bottom: 20px; left: 20px; width: 42px; height: 42px; }',
+      '}',
+      '@media (max-width: 480px) {',
+      '  #btt-btn { bottom: 16px; left: 16px; width: 40px; height: 40px; }',
+      '}',
+      '@media (prefers-reduced-motion: reduce) {',
+      '  #btt-btn { transition: opacity 0.15s ease, visibility 0.15s ease !important; }',
+      '}'
+    ].join('\n');
 
     document.head.appendChild(style);
     document.body.appendChild(btn);
@@ -3153,11 +2427,22 @@ var DOT_LABELS = [
     return btn;
   }
 
-  function showBTT() { if (bttButton) bttButton.classList.add('show'); }
-  function hideBTT() { if (bttButton) bttButton.classList.remove('show'); }
+  function showBTT() {
+    if (bttButton) {
+      bttButton.classList.add('show');
+    }
+  }
 
+  function hideBTT() {
+    if (bttButton) {
+      bttButton.classList.remove('show');
+    }
+  }
+
+  // Create button (hidden by default)
   bttButton = createBackToTop();
 
+  // ═══════════════ 9. PUBLIC API ═══════════════
   if (typeof window.footerAPI === 'undefined') {
     window.footerAPI = {
       reveal: playReveal,
@@ -3167,8 +2452,11 @@ var DOT_LABELS = [
           window.voidGoToSection(0);
         } else {
           var sc = document.getElementById('scroll-container');
-          if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
-          else window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (sc) {
+            sc.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }
       },
       destroy: function () {
@@ -3182,16 +2470,25 @@ var DOT_LABELS = [
   }
 
 })();
+  // ── PASTE SECTION-PROCESS (#section-process) BELOW ──
 
+  // ── END SECTION-PROCESS (#section-process) ──
 
+  // ── PASTE SECTION-7 (TESTIMONIALS) BELOW ──
 
+  // ── END SECTION-7 (TESTIMONIALS) ──
 
+  // ── PASTE SECTION-8 (FAQ) BELOW ──
 
+  // ── END SECTION-8 (FAQ) ──
 
+  // ── PASTE SECTION-CTA (#section-cta) BELOW ──
 
+  // ── END SECTION-CTA (#section-cta) ──
 
+  // ── PASTE FOOTER (#footer) BELOW ──
 
-
+  // ── END FOOTER (#footer) ──
 
 
   /* ============================================================

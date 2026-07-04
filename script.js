@@ -1545,26 +1545,22 @@
   }
 
   if (form && mobileCta && mobileCtaBtn) {
-    // Show it the moment a field is focused (mobile + section active only)
     form.addEventListener('focusin', function (e) {
       if (!isTouchMobile()) return;
       if (!section.classList.contains('is-visible')) return;
       if (e.target.matches('input, select, textarea')) showMobileCta();
     });
 
-    // Hide it once focus leaves the form entirely
     form.addEventListener('focusout', function () {
       setTimeout(function () {
         if (!form.contains(document.activeElement)) hideMobileCta();
       }, 60);
     });
 
-    // Tapping the floating button just triggers the real submit button
     mobileCtaBtn.addEventListener('click', function () {
       if (submitBtn) submitBtn.click();
     });
 
-    // Keep swipes on this bar from ever reaching the snap‑scroll system
     ['touchstart', 'touchend'].forEach(function (evt) {
       mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
     });
@@ -1573,11 +1569,10 @@
       e.preventDefault();
     }, { passive: false });
 
-    // Track the keyboard height live and sit right above it
     if (window.visualViewport) {
       var updateCtaOffset = function () {
         if (!isTouchMobile()) return;
-        if (!mobileCta) return;                 // safeguard if element removed
+        if (!mobileCta) return;
         var vv = window.visualViewport;
         var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         mobileCta.style.bottom = kb + 'px';
@@ -1594,17 +1589,14 @@
 
       var data = new FormData(form);
 
-      // Show loading state
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.classList.add('whbk-submit--loading');
       }
 
-      // Hide any previous error/success
       if (errorEl) errorEl.classList.remove('whbk-error--visible');
       if (successEl) successEl.classList.remove('whbk-success--visible');
 
-      // Submit to Formspree
       fetch('https://formspree.io/f/xeebraeo', {
         method: 'POST',
         body: data,
@@ -1614,7 +1606,6 @@
       })
       .then(function (response) {
         if (response.ok) {
-          // Success — hide form, show success
           form.classList.add('whbk-form--hidden');
           hideMobileCta();
           var nameInput = document.getElementById('whbk-name');
@@ -1622,12 +1613,8 @@
           if (successName) successName.textContent = firstName;
           if (successEl) successEl.classList.add('whbk-success--visible');
           form.reset();
-
-          // No scroll on mobile – CSS already reflows the overlay
           setTimeout(scrollToSectionTop, 150);
-
         } else {
-          // Error from server
           return response.json().then(function (data) {
             throw new Error(data.error || 'Something went wrong — please try again.');
           });
@@ -1651,7 +1638,6 @@
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whbk-success--visible');
       form.classList.remove('whbk-form--hidden');
-      // Desktop: scroll back to form inside the section
       setTimeout(scrollToSectionTop, 100);
     });
   }
@@ -1677,11 +1663,7 @@
     io.observe(section);
   }
 
-  /* ── Patch engine ──
-     NOTE: If you have BOTH booking and careers sections on the same page,
-     only the last one loaded will patch voidGoToSection. You should merge
-     both patches into a single function that handles both sections.
-     This does NOT cause a crash, but may make one section unresponsive. */
+  /* ── Patch engine ── */
   (function patchGoTo() {
     var attempts = 0;
     var poll = setInterval(function () {
@@ -1729,21 +1711,15 @@
     return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   }
 
-  /* ── Helper: Scroll inside the section's content area ──
-     Only used on desktop; mobile reflow is handled by CSS, so we skip it
-     to avoid conflicts with snap‑scroll and potential crashes. */
   function scrollToSectionTop() {
-    if (isTouchMobile()) return;                 // ← NO scroll on mobile
+    if (isTouchMobile()) return;
     var content = section.querySelector('.section-content');
     if (!content) return;
     try {
       content.scrollTop = 0;
-    } catch (e) {
-      // ignore if element is not scrollable for any reason
-    }
+    } catch (e) {}
   }
 
-  /* ── Floating mobile submit bar (shows above keyboard) ── */
   function showMobileCta() {
     if (!mobileCta) return;
     mobileCta.classList.add('whcr-mobile-cta--visible');
@@ -1756,26 +1732,22 @@
   }
 
   if (form && mobileCta && mobileCtaBtn) {
-    // Show it the moment a field is focused (mobile + section active only)
     form.addEventListener('focusin', function (e) {
       if (!isTouchMobile()) return;
       if (!section.classList.contains('is-visible')) return;
       if (e.target.matches('input, select, textarea')) showMobileCta();
     });
 
-    // Hide it once focus leaves the form entirely
     form.addEventListener('focusout', function () {
       setTimeout(function () {
         if (!form.contains(document.activeElement)) hideMobileCta();
       }, 60);
     });
 
-    // Tapping the floating button just triggers the real submit button
     mobileCtaBtn.addEventListener('click', function () {
       if (submitBtn) submitBtn.click();
     });
 
-    // Keep swipes on this bar from ever reaching the snap‑scroll system
     ['touchstart', 'touchend'].forEach(function (evt) {
       mobileCta.addEventListener(evt, function (e) { e.stopPropagation(); }, { passive: true });
     });
@@ -1784,11 +1756,10 @@
       e.preventDefault();
     }, { passive: false });
 
-    // Track the keyboard height live and sit right above it
     if (window.visualViewport) {
       var updateCtaOffset = function () {
         if (!isTouchMobile()) return;
-        if (!mobileCta) return;                 // safeguard if element removed
+        if (!mobileCta) return;
         var vv = window.visualViewport;
         var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         mobileCta.style.bottom = kb + 'px';
@@ -1798,24 +1769,20 @@
     }
   }
 
-  /* ── Form Submission ── */
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
 
       var data = new FormData(form);
 
-      // Show loading state
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.classList.add('whcr-submit--loading');
       }
 
-      // Hide any previous error/success
       if (errorEl) errorEl.classList.remove('whcr-error--visible');
       if (successEl) successEl.classList.remove('whcr-success--visible');
 
-      // Submit to Formspree
       fetch('https://formspree.io/f/xeebraeo', {
         method: 'POST',
         body: data,
@@ -1825,7 +1792,6 @@
       })
       .then(function (response) {
         if (response.ok) {
-          // Success — hide form, show success
           form.classList.add('whcr-form--hidden');
           hideMobileCta();
           var nameInput = document.getElementById('whcr-name');
@@ -1833,12 +1799,8 @@
           if (successName) successName.textContent = firstName;
           if (successEl) successEl.classList.add('whcr-success--visible');
           form.reset();
-
-          // No scroll on mobile – CSS already reflows the overlay
           setTimeout(scrollToSectionTop, 150);
-
         } else {
-          // Error from server
           return response.json().then(function (data) {
             throw new Error(data.error || 'Something went wrong — please try again.');
           });
@@ -1857,24 +1819,20 @@
     });
   }
 
-  /* ── Success button — reset form ── */
   if (successBtn) {
     successBtn.addEventListener('click', function () {
       if (successEl) successEl.classList.remove('whcr-success--visible');
       form.classList.remove('whcr-form--hidden');
-      // Desktop: scroll back to form inside the section
       setTimeout(scrollToSectionTop, 100);
     });
   }
 
-  /* ── Error button — retry ── */
   if (errorBtn) {
     errorBtn.addEventListener('click', function () {
       if (errorEl) errorEl.classList.remove('whcr-error--visible');
     });
   }
 
-  /* ── Entrance / Exit ── */
   function enter() { section.classList.add('is-visible'); }
   function exit() { section.classList.remove('is-visible'); hideMobileCta(); }
 
@@ -1888,8 +1846,6 @@
     io.observe(section);
   }
 
-  /* ── Patch engine ──
-     Same note as for booking: if both sections exist, combine the patches. */
   (function patchGoTo() {
     var attempts = 0;
     var poll = setInterval(function () {
